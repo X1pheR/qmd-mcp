@@ -83,7 +83,9 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Release policy
 
-Versions use SemVer tags such as `v0.1.0`. A release must point to an exact CI-green commit. The release workflow publishes the versioned GHCR image from that commit. Deployments should pin the resulting image digest rather than a mutable branch or floating tag.
+Versions use SemVer tags such as `v0.1.0`. A release must point to an exact CI-green commit. Release publication is expected to produce a versioned GHCR image from that commit, and deployments should pin the resulting image digest rather than a mutable branch or floating tag.
+
+The repository is not release-complete until tag-triggered publication automation has been reviewed and proven. Normal CI does not publish images or releases.
 
 ## License
 
