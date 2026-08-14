@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg VERSION=ci \
+            --build-arg REVISION="$GITHUB_SHA" \
+            -t qmd-mcp:ci \
+            .
+      - name: Verify image contract
+        run: |
+          test "$(docker image inspect qmd-mcp:ci --format '{{.Config.User}}')" = "node"
+          test "$(docker image inspect qmd-mcp:ci --format '{{index .Config.Labels "org.opencontainers.image.title"}}')" = "QMD MCP"
+          test "$(docker image inspect qmd-mcp:ci --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$GITHUB_SHA"
+      - name: Smoke MCP bootstrap and first update
+        run: |
+          mkdir -p .ci-smoke/config .ci-smoke/vault
+          printf '%s\n' \
+            'global_context: CI smoke knowledge base.' \
+            'collections:' \
+            '  docs:' \
+            '    path: /vault' \
+            '    pattern: "**/*.md"' \
+            > .ci-smoke/config/index.yml
+          printf '%s\n' '# Smoke' 'Repository bootstrap validation.' > .ci-smoke/vault/smoke.md
+
+          docker run -d --name qmd-mcp-ci \
+            -p 127.0.0.1:18181:8181 \
+            -e QMD_FORCE_CPU=1 \
+            -e QMD_REFRESH_INTERVAL_MINUTES=0 \
+            -v "$PWD/.ci-smoke/config:/config:ro" \
+            -v "$PWD/.ci-smoke/vault:/vault:ro" \
+            qmd-mcp:ci
+          trap 'docker rm -f qmd-mcp-ci >/dev/null 2>&1 || true' EXIT
+
+          python3 - <<'PY'
+          import json
+          import time
+          import urllib.request
+
+          base = "http://127.0.0.1:18181"
+          for _ in range(60):
+              try:
+                  with urllib.request.urlopen(base + "/health", timeout=2) as response:
+                      health = json.load(response)
+                  if health.get("status") == "ok":
+                      break
+              except Exception:
+                  time.sleep(1)
+          else:
+              raise SystemExit("QMD MCP did not become healthy")
+
+          def post(payload, session=None):
+              headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
+              if session:
+                  headers["mcp-session-id"] = session
+              request = urllib.request.Request(
+                  base + "/mcp",
+                  data=json.dumps(payload).encode(),
+                  headers=headers,
+                  method="POST",
+              )
+              with urllib.request.urlopen(request, timeout=10) as response:
+                  return response.headers, json.load(response)
+
+          headers, initialized = post({
+              "jsonrpc": "2.0",
+              "id": 1,
+              "method": "initialize",
+              "params": {
+                  "protocolVersion": "2025-03-26",
+                  "capabilities": {},
+                  "clientInfo": {"name": "qmd-mcp-ci", "version": "1"},
+              },
+          })
+          session = headers.get("mcp-session-id")
+          assert session
+          assert initialized["result"]["serverInfo"]["version"] == "2.5.3"
+
+          _, listed = post({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}, session)
+          names = {tool["name"] for tool in listed["result"]["tools"]}
+          expected = {"query", "query_reranked", "get", "multi_get", "status", "health", "start_update", "start_embed", "job_status"}
+          assert names == expected, names
+
+          _, started = post({
+              "jsonrpc": "2.0",
+              "id": 3,
+              "method": "tools/call",
+              "params": {"name": "start_update", "arguments": {"collections": ["docs"]}},
+          }, session)
+          job = started["result"]["structuredContent"]["job"]
+          assert job["state"] in {"queued", "running", "succeeded"}
+          job_id = job["id"]
+
+          for _ in range(30):
+              _, status = post({
+                  "jsonrpc": "2.0",
+                  "id": 4,
+                  "method": "tools/call",
+                  "params": {"name": "job_status", "arguments": {"jobId": job_id}},
+              }, session)
+              state = status["result"]["structuredContent"]["job"]["state"]
+              if state == "succeeded":
+                  break
+              if state in {"failed", "partial"}:
+                  raise SystemExit(f"update job ended as {state}")
+              time.sleep(0.5)
+          else:
+              raise SystemExit("update job did not finish")
+
+          with urllib.request.urlopen(base + "/health", timeout=2) as response:
+              health = json.load(response)
+          assert health["documents"] == 1, health
+          PY

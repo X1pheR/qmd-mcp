@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!package.json
+!package-lock.json
+!patch-qmd-bind.mjs
+!admin-server.mjs

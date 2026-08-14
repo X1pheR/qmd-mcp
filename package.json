@@ -1,0 +1,13 @@
+{
+  "name": "qmd-mcp",
+  "version": "0.1.0",
+  "description": "Unified QMD read and bounded administration MCP server",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@tobilu/qmd": "2.5.3",
+    "zod": "4.2.1"
+  }
+}
