@@ -1,6 +1,6 @@
 # QMD MCP
 
-QMD MCP packages QMD as a long-running Streamable HTTP MCP server with the normal QMD read tools plus bounded index-administration operations.
+QMD MCP is a community-maintained integration around [QMD](https://github.com/tobi/qmd). It packages QMD as a long-running Streamable HTTP MCP server with the normal read tools plus bounded index-administration operations. It is not affiliated with, endorsed by or officially maintained by the upstream QMD project.
 
 It is intended for deployments that want QMD search and retrieval plus controlled index maintenance behind one MCP endpoint without exposing arbitrary shell execution.
 
@@ -17,7 +17,7 @@ QMD MCP keeps QMD's read-oriented MCP tools and adds:
 - a separate CPU-heavy `query_reranked` tool;
 - internal-text document retrieval by default, with explicit opt-in MCP resource exposure.
 
-Only one administration job runs at a time. Completed jobs are retained in memory with a bounded history.
+Only one administration job runs at a time. Completed jobs are retained in memory with a bounded history. The complete nine-tool access and side-effect reference is in [`docs/tools.md`](docs/tools.md).
 
 ## Image contract
 
@@ -83,9 +83,9 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Release policy
 
-Versions use SemVer tags such as `v0.1.0`. A release must point to an exact CI-green commit. Release publication is expected to produce a versioned GHCR image from that commit, and deployments should pin the resulting image digest rather than a mutable branch or floating tag.
+Versions use SemVer tags such as `v0.1.0`. A release must point to an exact CI-green commit. The tag-triggered Release workflow verifies that the tag matches `package.json`, publishes the `linux/amd64` image to GHCR, records the immutable image digest and creates the corresponding GitHub Release. Normal CI does not publish images or releases.
 
-The repository is not release-complete until tag-triggered publication automation has been reviewed and proven. Normal CI does not publish images or releases.
+Deployments should pin the published image digest rather than a branch, `latest` or another moving tag. Release tags are treated as immutable and are never reused for a different commit.
 
 ## License
 
