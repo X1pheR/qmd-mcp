@@ -13,6 +13,26 @@ function replaceExactlyOnce(input, before, after, label) {
 
 const staticPatches = [
   [
+    'import { join, dirname } from "node:path";',
+    'import { join, dirname, isAbsolute, relative, resolve, sep } from "node:path";',
+    "path helpers",
+  ],
+  [
+    'import { z } from "zod";',
+    'import { z } from "zod";\nimport fastGlob from "fast-glob";',
+    "source path glob",
+  ],
+  [
+    'import { getConfigPath } from "../collections.js";',
+    'import { getConfigPath, loadConfig } from "../collections.js";',
+    "collection config loader",
+  ],
+  [
+    'import { enableProductionMode } from "../store.js";',
+    'import { enableProductionMode, handelize } from "../store.js";',
+    "indexed path normalizer",
+  ],
+  [
     'httpServer.listen(port, "localhost", () => resolve());',
     'const bindHost = process.env.QMD_HTTP_HOST || "localhost";\n        httpServer.listen(port, bindHost, () => resolve());',
     "listen host",
@@ -38,6 +58,94 @@ for (const [before, after, label] of staticPatches) {
   source = replaceExactlyOnce(source, before, after, label);
 }
 
+const sourcePathHelperAnchor = `function encodeQmdPath(path) {
+    // Encode each path segment separately to preserve slashes
+    return path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+}`;
+source = replaceExactlyOnce(
+  source,
+  sourcePathHelperAnchor,
+  sourcePathHelperAnchor + `
+const SOURCE_PATH_CACHE_TTL_MS = 60_000;
+const SOURCE_PATH_EXCLUDE_DIRS = ["node_modules", ".git", ".cache", "vendor", "dist", "build"];
+const sourcePathCache = new Map();
+const sourceRelativeRoot = (process.env.QMD_SOURCE_RELATIVE_ROOT || "").trim() || null;
+
+function relativeToConfiguredSourceRoot(absolutePath) {
+    if (!sourceRelativeRoot) return null;
+    const candidate = relative(resolve(sourceRelativeRoot), resolve(absolutePath));
+    if (candidate === "") return "";
+    if (candidate === ".." || candidate.startsWith(".." + sep) || isAbsolute(candidate)) return null;
+    return candidate.split(sep).join("/");
+}
+
+async function sourcePathMapForCollection(collectionName) {
+    const cached = sourcePathCache.get(collectionName);
+    if (cached && Date.now() - cached.loadedAt < SOURCE_PATH_CACHE_TTL_MS) return cached;
+
+    const config = loadConfig();
+    const collection = config?.collections?.[collectionName];
+    if (!collection?.path) {
+        const missing = { loadedAt: Date.now(), collectionPath: null, paths: new Map() };
+        sourcePathCache.set(collectionName, missing);
+        return missing;
+    }
+
+    const configuredIgnore = Array.isArray(collection.ignore) ? collection.ignore : [];
+    const ignore = [
+        ...SOURCE_PATH_EXCLUDE_DIRS.map((name) => "**/" + name + "/**"),
+        ...configuredIgnore,
+    ];
+    const files = await fastGlob(collection.pattern || "**/*.md", {
+        cwd: collection.path,
+        onlyFiles: true,
+        followSymbolicLinks: false,
+        dot: false,
+        ignore,
+    });
+    const paths = new Map();
+    for (const originalPath of files) {
+        if (originalPath.split("/").some((part) => part.startsWith("."))) continue;
+        let indexedPath;
+        try {
+            indexedPath = handelize(originalPath);
+        } catch {
+            continue;
+        }
+        if (!paths.has(indexedPath)) {
+            paths.set(indexedPath, originalPath);
+        } else if (paths.get(indexedPath) !== originalPath) {
+            paths.set(indexedPath, null);
+        }
+    }
+
+    const resolved = { loadedAt: Date.now(), collectionPath: collection.path, paths };
+    sourcePathCache.set(collectionName, resolved);
+    return resolved;
+}
+
+function collectionNameForResult(result) {
+    if (result?.collectionName) return result.collectionName;
+    if (!result?.displayPath || !result.displayPath.includes("/")) return null;
+    return result.displayPath.split("/", 1)[0] || null;
+}
+
+async function sourceRelativePathFor(result) {
+    if (!sourceRelativeRoot || !result?.displayPath) return null;
+    const collectionName = collectionNameForResult(result);
+    if (!collectionName) return null;
+    const prefix = collectionName + "/";
+    const indexedPath = result.displayPath.startsWith(prefix)
+        ? result.displayPath.slice(prefix.length)
+        : result.displayPath;
+    const collection = await sourcePathMapForCollection(collectionName);
+    const originalPath = collection.paths.get(indexedPath);
+    if (!originalPath || !collection.collectionPath) return null;
+    return relativeToConfiguredSourceRoot(resolve(collection.collectionPath, originalPath));
+}`,
+  "exact source path resolver",
+);
+
 const queryStart = '    server.registerTool("query", {';
 const getToolMarker = '    // ---------------------------------------------------------------------------\n    // Tool: qmd_get';
 const queryStartIndex = source.indexOf(queryStart);
@@ -46,7 +154,43 @@ if (queryStartIndex < 0 || queryEndIndex < 0 || queryEndIndex <= queryStartIndex
   throw new Error("Unable to locate the QMD query tool block");
 }
 
-const upstreamQueryBlock = source.slice(queryStartIndex, queryEndIndex);
+let upstreamQueryBlock = source.slice(queryStartIndex, queryEndIndex);
+upstreamQueryBlock = replaceExactlyOnce(
+  upstreamQueryBlock,
+  `        const filtered = results.map(r => {
+            const { line, snippet } = extractSnippet(r.body, primaryQuery, 300, r.bestChunkPos, r.bestChunk.length, intent);
+            return {
+                docid: \`#\${r.docid}\`,
+                file: r.displayPath,
+                title: r.title,
+                score: Math.round(r.score * 100) / 100,
+                context: r.context,
+                line,
+                snippet: addLineNumbers(snippet, line),
+            };
+        });`,
+  `        const filtered = await Promise.all(results.map(async (r) => {
+            const { line, snippet } = extractSnippet(r.body, primaryQuery, 300, r.bestChunkPos, r.bestChunk.length, intent);
+            return {
+                docid: \`#\${r.docid}\`,
+                file: r.displayPath,
+                collection: collectionNameForResult(r),
+                source_relative_path: await sourceRelativePathFor(r),
+                title: r.title,
+                score: Math.round(r.score * 100) / 100,
+                context: r.context,
+                line,
+                snippet: addLineNumbers(snippet, line),
+            };
+        }));`,
+  "query exact source path metadata",
+);
+upstreamQueryBlock = replaceExactlyOnce(
+  upstreamQueryBlock,
+  'Each result includes a \\`line\\` field with the absolute 1-indexed line of the best match in the source markdown. To read more context around a hit, call \\`get(file, fromLine = max(1, line - 20), maxLines = 80, lineNumbers = true)\\`.',
+  'Each result includes a \\`line\\` field with the absolute 1-indexed line of the best match. When \\`QMD_SOURCE_RELATIVE_ROOT\\` is configured and the original source path resolves unambiguously, \\`source_relative_path\\` preserves the exact source spelling and is preferred for handoff to an authoritative filesystem. Use \\`get\\` only when QMD document retrieval itself is needed.',
+  "query source path guidance",
+);
 
 let routineQueryBlock = upstreamQueryBlock;
 routineQueryBlock = replaceExactlyOnce(

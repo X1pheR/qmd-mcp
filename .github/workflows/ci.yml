@@ -27,7 +27,7 @@ jobs:
           test "$(docker image inspect qmd-mcp:ci --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$GITHUB_SHA"
       - name: Smoke MCP bootstrap and first update
         run: |
-          mkdir -p .ci-smoke/config .ci-smoke/vault
+          mkdir -p .ci-smoke/config .ci-smoke/vault/_meta
           printf '%s\n' \
             'global_context: CI smoke knowledge base.' \
             'collections:' \
@@ -36,10 +36,12 @@ jobs:
             '    pattern: "**/*.md"' \
             > .ci-smoke/config/index.yml
           printf '%s\n' '# Smoke' 'Repository bootstrap validation.' > .ci-smoke/vault/smoke.md
+          printf '%s\n' '# Exact source path' 'qmd-source-path-marker' > .ci-smoke/vault/_meta/source_path.md
 
           docker run -d --name qmd-mcp-ci \
             -p 127.0.0.1:18181:8181 \
             -e QMD_FORCE_CPU=1 \
+            -e QMD_SOURCE_RELATIVE_ROOT=/vault \
             -e QMD_REFRESH_INTERVAL_MINUTES=0 \
             -v "$PWD/.ci-smoke/config:/config:ro" \
             -v "$PWD/.ci-smoke/vault:/vault:ro" \
@@ -121,7 +123,27 @@ jobs:
           else:
               raise SystemExit("update job did not finish")
 
+          _, queried = post({
+              "jsonrpc": "2.0",
+              "id": 5,
+              "method": "tools/call",
+              "params": {
+                  "name": "query",
+                  "arguments": {
+                      "searches": [{"type": "lex", "query": "qmd-source-path-marker"}],
+                      "collections": ["docs"],
+                      "intent": "CI exact source path handoff validation",
+                      "limit": 3,
+                  },
+              },
+          }, session)
+          results = queried["result"]["structuredContent"]["results"]
+          assert results, queried
+          match = next(item for item in results if item["source_relative_path"] == "_meta/source_path.md")
+          assert match["collection"] == "docs"
+          assert match["file"] == "docs/meta/source-path.md"
+
           with urllib.request.urlopen(base + "/health", timeout=2) as response:
               health = json.load(response)
-          assert health["documents"] == 1, health
+          assert health["documents"] == 2, health
           PY
