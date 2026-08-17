@@ -142,6 +142,7 @@ QMD MCP keeps QMD's read-oriented MCP tools and adds bounded administration oper
 - scheduled refresh and embedding can run automatically;
 - routine `query` runs with reranking disabled;
 - `query_reranked` provides a separate CPU-heavy reranked path;
+- query results can include an exact `source_relative_path` for authoritative filesystem handoff when `QMD_SOURCE_RELATIVE_ROOT` is configured and the source path resolves unambiguously;
 - document retrieval returns internal text by default, with explicit opt-in MCP resource exposure.
 
 Only one administration job runs at a time. Completed jobs are retained in memory with a bounded history. See [`docs/tools.md`](docs/tools.md) for the complete nine-tool reference, including access level and side effects.
@@ -169,6 +170,7 @@ The Dockerfile provides working defaults for the normal runtime paths and HTTP l
 | `QMD_HTTP_PORT` | `8181` | HTTP listen port |
 | `QMD_CONFIG_PATH` | `/config/index.yml` | QMD collection configuration file |
 | `INDEX_PATH` | `/data/index.sqlite` | QMD index database |
+| `QMD_SOURCE_RELATIVE_ROOT` | unset | Optional common source root. When set, query results include exact, collision-safe `source_relative_path` values relative to this root. |
 | `QMD_DEFAULT_COLLECTION` | unset | Default collection for `start_embed`; otherwise the first configured collection is used |
 | `QMD_FORCE_CPU` | `0` | Set to `1` to disable acceleration probing and force CPU use |
 | `QMD_EMBED_PARALLELISM` | unset | Optional QMD embedding parallelism override |
@@ -178,7 +180,7 @@ The Dockerfile provides working defaults for the normal runtime paths and HTTP l
 | `QMD_REFRESH_INTERVAL_MINUTES` | `15` | Scheduled refresh interval; `0` disables it, maximum `1440` |
 | `QMD_REFRESH_INITIAL_DELAY_SECONDS` | `120` | Delay before the first scheduled refresh; accepted range `0`-`3600` |
 
-Invalid bounded numeric values fail at startup instead of being silently accepted.
+Invalid bounded numeric values fail at startup instead of being silently accepted. `QMD_SOURCE_RELATIVE_ROOT` never exposes its absolute path; only a relative source path is returned, and ambiguous normalized-path collisions return `null` rather than guessing.
 
 ## Security model
 

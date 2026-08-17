@@ -28,13 +28,13 @@ Material inputs:
 - `limit` defaults to 10;
 - `minScore` defaults to 0.
 
-The first subquery receives additional weight. Results include the absolute 1-indexed source line of the best match so callers can retrieve a bounded surrounding range with `get`.
+The first subquery receives additional weight. Results include the absolute 1-indexed source line of the best match. When `QMD_SOURCE_RELATIVE_ROOT` is configured, each result also includes its `collection` and an exact `source_relative_path` when the original source spelling can be reconstructed unambiguously. Use that exact path for handoff to an authoritative filesystem; call `get` only when QMD document retrieval itself is needed.
 
 ### `query_reranked`
 
 Administrative search with local reranking. Inputs match `query` and add `candidateLimit`, which defaults to 10 and is bounded to 1-20.
 
-This tool is read-only but can be substantially more CPU-intensive than `query`. Prefer `query` unless reranking is materially useful.
+This tool is read-only but can be substantially more CPU-intensive than `query`. Prefer `query` unless reranking is materially useful. It returns the same `collection` and optional exact `source_relative_path` metadata as the routine query.
 
 ## Retrieval tools
 
