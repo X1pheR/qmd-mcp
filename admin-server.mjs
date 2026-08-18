@@ -5,6 +5,15 @@ import { createMcpServer as createReadMcpServer } from "./node_modules/@tobilu/q
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createStore } from "@tobilu/qmd";
 import { loadConfig } from "./node_modules/@tobilu/qmd/dist/collections.js";
+import { DEFAULT_EMBED_MODEL, getEmbeddingFingerprint } from "./node_modules/@tobilu/qmd/dist/store.js";
+import {
+  assertSearchEmbeddingPolicy,
+  collectionEmbeddingEnabled,
+  countPendingEmbeddingHashes,
+  effectiveEmbeddingStatus,
+  embeddingEnabledCollectionNames,
+  validateEmbeddingPolicy,
+} from "./embedding-policy.mjs";
 import { z } from "zod";
 
 const port = Number(process.env.QMD_HTTP_PORT || "8181");
@@ -74,6 +83,53 @@ const scheduledEmbedMaxBatchMb = readBoundedInteger("QMD_EMBED_MAX_BATCH_MB", 16
 const scheduledEmbedMaxDurationMs = readBoundedInteger("QMD_EMBED_MAX_DURATION_MS", 3_600_000, 60_000, 7_200_000);
 
 const store = await createStore({ dbPath, configPath });
+
+function embeddingConfig() {
+  const config = loadConfig();
+  validateEmbeddingPolicy(config);
+  return config;
+}
+
+function embeddingModelName() {
+  return store.internal?.llm?.embedModelName || DEFAULT_EMBED_MODEL;
+}
+
+function effectiveNeedsEmbedding(selectedCollections) {
+  const model = embeddingModelName();
+  return countPendingEmbeddingHashes(
+    store.internal.db,
+    embeddingConfig(),
+    model,
+    getEmbeddingFingerprint(model),
+    selectedCollections,
+  );
+}
+
+async function effectiveStatus() {
+  return effectiveEmbeddingStatus(await store.getStatus(), effectiveNeedsEmbedding());
+}
+
+async function effectiveIndexHealth() {
+  return effectiveEmbeddingStatus(await store.getIndexHealth(), effectiveNeedsEmbedding());
+}
+
+async function updateCollections(collections, onProgress) {
+  const result = await store.update({ collections, onProgress });
+  return effectiveEmbeddingStatus(result, effectiveNeedsEmbedding());
+}
+
+const readStore = {
+  ...store,
+  search: async (options) => {
+    assertSearchEmbeddingPolicy(embeddingConfig(), options);
+    return store.search(options);
+  },
+  getStatus: effectiveStatus,
+  getIndexHealth: effectiveIndexHealth,
+};
+
+embeddingConfig();
+
 const sessions = new Map();
 const jobs = new Map();
 let activeJobId = null;
@@ -150,8 +206,11 @@ function pruneJobs() {
 }
 
 async function collectionNames() {
-  const config = loadConfig();
-  return Object.keys(config?.collections || {});
+  return Object.keys(embeddingConfig()?.collections || {});
+}
+
+async function embeddingCollectionNames() {
+  return embeddingEnabledCollectionNames(embeddingConfig());
 }
 
 async function validateCollections(requested) {
@@ -216,19 +275,20 @@ function startJob(type, parameters, execute) {
 
 async function startScheduledRefresh() {
   const selected = await collectionNames();
+  const embeddable = (await embeddingCollectionNames()).filter((name) => selected.includes(name));
   return startJob("scheduled_refresh", { collections: selected, trigger: "timer" }, async (setProgress) => {
     setProgress({ phase: "update", collection: null });
-    const update = await store.update({
-      collections: selected,
-      onProgress: (progress) => setProgress({
+    const update = await updateCollections(
+      selected,
+      (progress) => setProgress({
         phase: "update",
         collection: progress.collection,
         current: progress.current,
         total: progress.total,
       }),
-    });
+    );
 
-    const statusAfterUpdate = await store.getStatus();
+    const statusAfterUpdate = await effectiveStatus();
     if (statusAfterUpdate.needsEmbedding === 0) {
       setProgress({ phase: "complete", collection: null, needsEmbedding: 0 });
       return {
@@ -240,7 +300,8 @@ async function startScheduledRefresh() {
     }
 
     const embeddings = [];
-    for (const collection of selected) {
+    for (const collection of embeddable) {
+      if (effectiveNeedsEmbedding([collection]) === 0) continue;
       setProgress({ phase: "embed", collection });
       const result = await store.embed({
         collection,
@@ -269,8 +330,8 @@ async function startScheduledRefresh() {
     return {
       update,
       embeddings,
-      embeddingSkipped: false,
-      needsEmbedding: statusAfterUpdate.needsEmbedding,
+      embeddingSkipped: embeddings.length === 0,
+      needsEmbedding: effectiveNeedsEmbedding(),
     };
   });
 }
@@ -312,7 +373,7 @@ function textResult(text, structuredContent, isError = false) {
 }
 
 async function createMcpServer() {
-  const server = await createReadMcpServer(store);
+  const server = await createReadMcpServer(readStore);
 
   server.registerTool(
     "health",
@@ -324,7 +385,7 @@ async function createMcpServer() {
       outputSchema: healthOutputSchema,
     },
     async () => {
-      const [status, indexHealth] = await Promise.all([store.getStatus(), store.getIndexHealth()]);
+      const [status, indexHealth] = await Promise.all([effectiveStatus(), effectiveIndexHealth()]);
       const payload = {
         status,
         indexHealth,
@@ -367,15 +428,15 @@ async function createMcpServer() {
       try {
         const selected = await validateCollections(collections);
         const job = startJob("update", { collections: selected }, async (setProgress) =>
-          store.update({
-            collections: selected,
-            onProgress: (progress) => setProgress({
+          updateCollections(
+            selected,
+            (progress) => setProgress({
               collection: progress.collection,
               file: progress.file,
               current: progress.current,
               total: progress.total,
             }),
-          }),
+          ),
         );
         return textResult(`Started QMD update job ${job.id}.`, { job });
       } catch (error) {
@@ -389,10 +450,10 @@ async function createMcpServer() {
     "start_embed",
     {
       title: "Start QMD Embedding Update",
-      description: "Start one bounded asynchronous embedding job. Force rebuild is allowed only on this administrative server.",
+      description: "Start one bounded asynchronous embedding job for an embedding-enabled collection. Force rebuild is allowed only on this administrative server.",
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
       inputSchema: {
-        collection: z.string().optional().describe("Configured collection name. Defaults to QMD_DEFAULT_COLLECTION or the first configured collection."),
+        collection: z.string().optional().describe("Configured embedding-enabled collection name. Defaults to QMD_DEFAULT_COLLECTION or the first embedding-enabled collection."),
         force: z.boolean().optional().default(false).describe("Rebuild existing embeddings as well as missing embeddings."),
         maxDocsPerBatch: z.number().int().min(1).max(32).optional().default(8),
         maxBatchMb: z.number().int().min(1).max(128).optional().default(16),
@@ -402,10 +463,13 @@ async function createMcpServer() {
     },
     async ({ collection, force, maxDocsPerBatch, maxBatchMb, chunkStrategy }) => {
       try {
-        const available = await collectionNames();
-        const requestedCollection = collection || defaultCollection || available[0];
-        if (!requestedCollection) throw new Error("No configured QMD collection is available for embedding");
+        const embeddable = await embeddingCollectionNames();
+        const requestedCollection = collection || defaultCollection || embeddable[0];
+        if (!requestedCollection) throw new Error("No embedding-enabled QMD collection is available");
         const selected = await validateCollections([requestedCollection]);
+        if (!collectionEmbeddingEnabled(embeddingConfig(), selected[0])) {
+          throw new Error(`Embedding is disabled for collection '${selected[0]}'`);
+        }
         const parameters = {
           collection: selected[0],
           force,
@@ -493,7 +557,7 @@ const httpServer = createServer(async (nodeRequest, nodeResponse) => {
   try {
     const pathname = nodeRequest.url || "/";
     if (pathname === "/health" && nodeRequest.method === "GET") {
-      const status = await store.getStatus();
+      const status = await effectiveStatus();
       nodeResponse.writeHead(200, { "Content-Type": "application/json" });
       nodeResponse.end(JSON.stringify({
         status: "ok",

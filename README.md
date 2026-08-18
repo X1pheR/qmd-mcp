@@ -9,16 +9,12 @@ This is a community-maintained integration. It is not affiliated with, endorsed 
 The public Docker image is published on GitHub Container Registry (GHCR):
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.1.0
+ghcr.io/x1pher/qmd-mcp:v0.1.2
 ```
 
 The package is public, so Docker does not need a GitHub login to pull it.
 
-The current immutable release reference is:
-
-```text
-ghcr.io/x1pher/qmd-mcp@sha256:e96f8040e342c652f881167bae14ae14eb1115d098f6b9e87348498b358596f3
-```
+For production deployments, use the immutable digest published in the corresponding GitHub Release rather than relying on the version tag alone.
 
 The image currently supports `linux/amd64`. It intentionally retains only the QMD `linux-x64` native llama runtime to keep the image bounded.
 
@@ -49,16 +45,24 @@ collections:
     path: /vault/archive
     pattern: "**/*.md"
     includeByDefault: false
+
+  append-only-log:
+    path: /vault/logs
+    pattern: "history.md"
+    includeByDefault: false
+    embedding: false
 ```
 
 `path` values refer to paths inside the container. The Compose example below mounts `./content` at `/vault`.
+
+`embedding: false` is a QMD MCP wrapper extension for collections that should remain lexical-only. The files are still indexed and available to explicit lexical (`lex`) searches, but they are excluded from embedding health, scheduled embedding and manual `start_embed` jobs. Use it for large append-only logs or other exact-lookup material where repeatedly rebuilding vectors adds cost without useful semantic recall.
 
 ### 3. Create `compose.yml`
 
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp@sha256:e96f8040e342c652f881167bae14ae14eb1115d098f6b9e87348498b358596f3
+    image: ghcr.io/x1pher/qmd-mcp:v0.1.2
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -128,7 +132,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp@sha256:e96f8040e342c652f881167bae14ae14eb1115d098f6b9e87348498b358596f3
+  ghcr.io/x1pher/qmd-mcp:v0.1.2
 ```
 
 ## What QMD MCP provides
@@ -139,7 +143,7 @@ QMD MCP keeps QMD's read-oriented MCP tools and adds bounded administration oper
 - `start_update` starts a bounded asynchronous filesystem reindex job;
 - `start_embed` starts a bounded asynchronous embedding job;
 - `job_status` reports recent administration jobs;
-- scheduled refresh and embedding can run automatically;
+- scheduled refresh and embedding can run automatically while `embedding: false` collections remain lexical-only;
 - routine `query` runs with reranking disabled;
 - `query_reranked` provides a separate CPU-heavy reranked path;
 - query results can include an exact `source_relative_path` for authoritative filesystem handoff when `QMD_SOURCE_RELATIVE_ROOT` is configured and the source path resolves unambiguously;
@@ -208,7 +212,7 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Releases
 
-Versions use SemVer tags such as `v0.1.0`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
+Versions use SemVer tags such as `v0.1.2`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
 
 1. verifies that the tag matches `package.json`;
 2. builds the `linux/amd64` image;

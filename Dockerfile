@@ -1,5 +1,5 @@
 ARG NODE_IMAGE=node:22-bookworm-slim@sha256:a17d50af28002a160548bd4225b3cfcb12c5efcb171f79e68758f2885fb1b066
-ARG VERSION=0.1.1
+ARG VERSION=0.1.2
 ARG REVISION=unknown
 FROM ${NODE_IMAGE} AS build
 
@@ -8,16 +8,19 @@ WORKDIR /opt/qmd
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
-COPY patch-qmd-bind.mjs admin-server.mjs ./
+COPY patch-qmd-bind.mjs admin-server.mjs embedding-policy.mjs ./
+COPY tests ./tests
 RUN node ./patch-qmd-bind.mjs \
+    && node --test ./tests/*.test.mjs \
     && node --check ./admin-server.mjs \
+    && node --check ./embedding-policy.mjs \
     && node --check ./node_modules/@tobilu/qmd/dist/store.js \
     && node --check ./node_modules/@tobilu/qmd/dist/cli/qmd.js \
     && test -d ./node_modules/@node-llama-cpp/linux-x64 \
     && find ./node_modules/@node-llama-cpp \
          -mindepth 1 -maxdepth 1 -type d ! -name linux-x64 \
          -exec rm -rf {} + \
-    && rm -rf /root/.npm
+    && rm -rf ./tests /root/.npm
 
 FROM ${NODE_IMAGE}
 ARG VERSION
