@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: read
-
 jobs:
   image:
     runs-on: ubuntu-latest
@@ -25,6 +24,7 @@ jobs:
           test "$(docker image inspect qmd-mcp:ci --format '{{.Config.User}}')" = "node"
           test "$(docker image inspect qmd-mcp:ci --format '{{index .Config.Labels "org.opencontainers.image.title"}}')" = "QMD MCP"
           test "$(docker image inspect qmd-mcp:ci --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "$GITHUB_SHA"
+          test "$(docker image inspect qmd-mcp:ci --format '{{index .Config.Labels "io.modelcontextprotocol.server.name"}}')" = "io.github.X1pheR/qmd-mcp"
       - name: Smoke MCP bootstrap and first update
         run: |
           mkdir -p .ci-smoke/config .ci-smoke/vault/_meta .ci-smoke/vault/logs
@@ -59,6 +59,7 @@ jobs:
           python3 - <<'PY'
           import json
           import time
+          import urllib.error
           import urllib.request
 
           base = "http://127.0.0.1:18181"
@@ -101,9 +102,24 @@ jobs:
           assert initialized["result"]["serverInfo"]["version"] == "2.5.3"
 
           _, listed = post({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}, session)
-          names = {tool["name"] for tool in listed["result"]["tools"]}
+          tools = {tool["name"]: tool for tool in listed["result"]["tools"]}
           expected = {"query", "query_reranked", "get", "multi_get", "status", "health", "start_update", "start_embed", "job_status"}
-          assert names == expected, names
+          assert set(tools) == expected, set(tools)
+          assert tools["start_update"]["annotations"]["destructiveHint"] is True
+          assert tools["start_embed"]["annotations"]["destructiveHint"] is True
+
+          oversized = urllib.request.Request(
+              base + "/mcp",
+              data=b"x" * (1024 * 1024 + 1),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          try:
+              urllib.request.urlopen(oversized, timeout=10)
+          except urllib.error.HTTPError as error:
+              assert error.code == 413, error.code
+          else:
+              raise AssertionError("oversized MCP request was accepted")
 
           _, started = post({
               "jsonrpc": "2.0",
