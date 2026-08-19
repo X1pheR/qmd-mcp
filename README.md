@@ -1,5 +1,6 @@
 # QMD MCP
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/X1pheR/qmd-mcp/badge)](https://scorecard.dev/viewer/?uri=github.com/X1pheR/qmd-mcp)
 [![Verified by M8ven](https://m8ven.ai/badge/mcp/x1pher-qmd-mcp-jfo7qm)](https://m8ven.ai/verified?check=https%3A%2F%2Fgithub.com%2Fx1pher%2Fqmd-mcp)
 
 QMD MCP packages [QMD](https://github.com/tobi/qmd) as a long-running Streamable HTTP MCP server. It provides QMD search and document retrieval together with bounded index-maintenance operations, without exposing arbitrary shell execution.
