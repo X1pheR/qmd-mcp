@@ -89,10 +89,10 @@
   "warnings_strict_status": "N/A",
   "warnings_strict_justification": "Compiler warning-level flags do not apply to the authored JavaScript ES modules.",
 
-  "know_secure_design_status": "?",
-  "know_secure_design_justification": "Project-level evidence for secure design principles and their current implementation is documented in docs/SECURE-DEVELOPMENT.md. This criterion is intentionally left for the primary maintainer's personal self-certification. https://github.com/X1pheR/qmd-mcp/blob/main/docs/SECURE-DEVELOPMENT.md",
-  "know_common_errors_status": "?",
-  "know_common_errors_justification": "Common OWASP/CWE-style weakness classes and project mitigations are documented in docs/SECURE-DEVELOPMENT.md. This criterion is intentionally left for the primary maintainer's personal self-certification. https://github.com/X1pheR/qmd-mcp/blob/main/docs/SECURE-DEVELOPMENT.md",
+  "know_secure_design_status": "Met",
+  "know_secure_design_justification": "The primary maintainer self-certified this criterion as Met in OpenSSF Best Practices project 14153 on 2026-08-19. Project-level evidence for secure design principles and their current implementation is documented in docs/SECURE-DEVELOPMENT.md. https://github.com/X1pheR/qmd-mcp/blob/main/docs/SECURE-DEVELOPMENT.md",
+  "know_common_errors_status": "Met",
+  "know_common_errors_justification": "The primary maintainer self-certified this criterion as Met in OpenSSF Best Practices project 14153 on 2026-08-19. Common OWASP/CWE-style weakness classes and project mitigations are documented in docs/SECURE-DEVELOPMENT.md. https://github.com/X1pheR/qmd-mcp/blob/main/docs/SECURE-DEVELOPMENT.md",
 
   "crypto_published_status": "N/A",
   "crypto_published_justification": "qmd-mcp does not implement or define a cryptographic algorithm or protocol.",
