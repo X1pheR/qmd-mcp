@@ -81,20 +81,26 @@ jobs:
           sbom: true
 
       - name: Attest image provenance
+        id: attest
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
         with:
           subject-name: ${{ env.IMAGE }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
+          create-storage-record: false
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           IMAGE_DIGEST: ${{ steps.build.outputs.digest }}
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          ATTESTATION_BUNDLE: ${{ steps.attest.outputs.bundle-path }}
         shell: bash
         run: |
           set -euo pipefail
+          attestation_asset="qmd-mcp-${RELEASE_TAG}.sigstore.json"
+          test -s "${ATTESTATION_BUNDLE}"
+          cp "${ATTESTATION_BUNDLE}" "${attestation_asset}"
           cat > release-notes.md <<EOF2
           Container image:
 
@@ -107,6 +113,7 @@ jobs:
           Deployments should pin the digest rather than the tag.
           EOF2
           gh release create "${RELEASE_TAG}" \
+            "${attestation_asset}#Sigstore attestation bundle" \
             --verify-tag \
             --title "${RELEASE_TAG}" \
             --notes-file release-notes.md
