@@ -1,5 +1,7 @@
 # QMD MCP
 
+[![Verified by M8ven](https://m8ven.ai/badge/mcp/x1pher-qmd-mcp-jfo7qm)](https://m8ven.ai/verified?check=https%3A%2F%2Fgithub.com%2Fx1pher%2Fqmd-mcp)
+
 QMD MCP packages [QMD](https://github.com/tobi/qmd) as a long-running Streamable HTTP MCP server. It provides QMD search and document retrieval together with bounded index-maintenance operations, without exposing arbitrary shell execution.
 
 This is a community-maintained integration. It is not affiliated with, endorsed by, or officially maintained by the upstream QMD project.
@@ -191,7 +193,8 @@ Invalid bounded numeric values fail at startup instead of being silently accepte
 - The container runs as the upstream Node image's unprivileged `node` user.
 - Source collections should normally be mounted read-only.
 - Index and cache state remain separate from source content.
-- Administration is limited to the exposed job operations; arbitrary shell execution is not exposed.
+- Administration is limited to the exposed job operations. The wrapper calls the QMD store API directly; it does not invoke QMD CLI update hooks or expose arbitrary shell execution.
+- MCP request bodies are capped at 1 MiB before JSON parsing.
 - Error messages redact configured index and config paths.
 - MCP transport is not an authentication layer. Keep it on a trusted network boundary or place it behind an authenticated MCP gateway.
 - Production deployments should use an immutable release image digest instead of a branch, `latest`, or another moving tag.
