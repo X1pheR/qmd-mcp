@@ -5,10 +5,16 @@
   "private": true,
   "type": "module",
   "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.29.0",
     "@tobilu/qmd": "2.5.3",
     "fast-glob": "3.3.3",
     "zod": "4.2.1"
+  },
+  "devDependencies": {
+    "fast-check": "4.9.0"
   }
 }
