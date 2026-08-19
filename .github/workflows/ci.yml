@@ -121,6 +121,24 @@ jobs:
           else:
               raise AssertionError("oversized MCP request was accepted")
 
+          malformed = urllib.request.Request(
+              base + "/mcp",
+              data=b"{",
+              headers={
+                  "Content-Type": "application/json",
+                  "Accept": "application/json, text/event-stream",
+              },
+              method="POST",
+          )
+          try:
+              urllib.request.urlopen(malformed, timeout=10)
+          except urllib.error.HTTPError as error:
+              assert error.code == 400, error.code
+              payload = json.loads(error.read().decode())
+              assert payload["error"]["code"] == -32700, payload
+          else:
+              raise AssertionError("malformed JSON request was accepted")
+
           _, started = post({
               "jsonrpc": "2.0",
               "id": 3,

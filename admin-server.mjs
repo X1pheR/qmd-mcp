@@ -588,7 +588,17 @@ const httpServer = createServer(async (nodeRequest, nodeResponse) => {
 
     if (nodeRequest.method === "POST") {
       rawBody = await collectBoundedBody(nodeRequest);
-      parsedBody = JSON.parse(rawBody);
+      try {
+        parsedBody = JSON.parse(rawBody);
+      } catch {
+        nodeResponse.writeHead(400, { "Content-Type": "application/json" });
+        nodeResponse.end(JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32700, message: "Parse error: Invalid JSON" },
+          id: null,
+        }));
+        return;
+      }
       if (sessionId) {
         transport = sessions.get(sessionId);
         if (!transport) {
