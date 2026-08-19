@@ -4,6 +4,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { createMcpServer as createReadMcpServer } from "./node_modules/@tobilu/qmd/dist/mcp/server.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createStore } from "@tobilu/qmd";
+import { RequestBodyTooLargeError, collectBoundedBody } from "./http-policy.mjs";
 import { loadConfig } from "./node_modules/@tobilu/qmd/dist/collections.js";
 import { DEFAULT_EMBED_MODEL, getEmbeddingFingerprint } from "./node_modules/@tobilu/qmd/dist/store.js";
 import {
@@ -418,7 +419,7 @@ async function createMcpServer() {
     {
       title: "Start QMD Index Update",
       description: "Start one bounded asynchronous filesystem reindex job for configured collections.",
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
       inputSchema: {
         collections: z.array(z.string()).min(1).max(8).optional().describe("Configured collection names. Defaults to all configured collections."),
       },
@@ -451,7 +452,7 @@ async function createMcpServer() {
     {
       title: "Start QMD Embedding Update",
       description: "Start one bounded asynchronous embedding job for an embedding-enabled collection. Force rebuild is allowed only on this administrative server.",
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
       inputSchema: {
         collection: z.string().optional().describe("Configured embedding-enabled collection name. Defaults to QMD_DEFAULT_COLLECTION or the first embedding-enabled collection."),
         force: z.boolean().optional().default(false).describe("Rebuild existing embeddings as well as missing embeddings."),
@@ -547,12 +548,6 @@ async function createSession() {
   return transport;
 }
 
-async function collectBody(request) {
-  const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
-  return Buffer.concat(chunks).toString("utf8");
-}
-
 const httpServer = createServer(async (nodeRequest, nodeResponse) => {
   try {
     const pathname = nodeRequest.url || "/";
@@ -592,8 +587,18 @@ const httpServer = createServer(async (nodeRequest, nodeResponse) => {
     let parsedBody;
 
     if (nodeRequest.method === "POST") {
-      rawBody = await collectBody(nodeRequest);
-      parsedBody = JSON.parse(rawBody);
+      rawBody = await collectBoundedBody(nodeRequest);
+      try {
+        parsedBody = JSON.parse(rawBody);
+      } catch {
+        nodeResponse.writeHead(400, { "Content-Type": "application/json" });
+        nodeResponse.end(JSON.stringify({
+          jsonrpc: "2.0",
+          error: { code: -32700, message: "Parse error: Invalid JSON" },
+          id: null,
+        }));
+        return;
+      }
       if (sessionId) {
         transport = sessions.get(sessionId);
         if (!transport) {
@@ -640,6 +645,11 @@ const httpServer = createServer(async (nodeRequest, nodeResponse) => {
     nodeResponse.writeHead(response.status, Object.fromEntries(response.headers));
     nodeResponse.end(Buffer.from(await response.arrayBuffer()));
   } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      nodeResponse.writeHead(413, { "Content-Type": "application/json" });
+      nodeResponse.end(JSON.stringify({ error: "request_body_too_large" }));
+      return;
+    }
     console.error(`QMD admin request failed: ${sanitizeError(error)}`);
     nodeResponse.writeHead(500, { "Content-Type": "application/json" });
     nodeResponse.end(JSON.stringify({ error: "internal_error" }));

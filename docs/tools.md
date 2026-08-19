@@ -10,7 +10,7 @@ QMD MCP exposes nine tools. The read tools search or retrieve indexed source con
 | `multi_get` | Read | No | Retrieve multiple indexed documents by glob pattern or comma-separated path list. |
 | `status` | Read | No | Report QMD collection and index status. |
 | `health` | Read | No | Report collection, document, embedding and administration-job health. |
-| `start_update` | Index write | No source mutation | Start one bounded asynchronous filesystem reindex job. |
+| `start_update` | Index write | Index-destructive only | Start one bounded asynchronous filesystem reindex job; stale index entries may be removed. |
 | `start_embed` | Index write | Conditional, index only | Start one bounded asynchronous embedding job; `force=true` rebuilds existing embeddings in the selected scope. |
 | `job_status` | Read | No | Return one administration job or a bounded list of recent jobs. |
 
@@ -72,7 +72,7 @@ QMD MCP permits only one administration job at a time. Update and embedding jobs
 
 Starts one asynchronous filesystem reindex job. `collections` optionally selects 1-8 configured collections; omitting it updates all configured collections.
 
-Side effects are limited to the QMD index. Source collections should be mounted read-only and are not modified by the tool.
+Side effects are limited to the QMD index. Re-indexing may remove stale index entries when source files no longer exist. Source collections should be mounted read-only and are not modified by the tool.
 
 ### `start_embed`
 

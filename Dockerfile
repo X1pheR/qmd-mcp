@@ -8,12 +8,13 @@ WORKDIR /opt/qmd
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
-COPY patch-qmd-bind.mjs admin-server.mjs embedding-policy.mjs ./
+COPY patch-qmd-bind.mjs admin-server.mjs embedding-policy.mjs http-policy.mjs ./
 COPY tests ./tests
 RUN node ./patch-qmd-bind.mjs \
     && node --test ./tests/*.test.mjs \
     && node --check ./admin-server.mjs \
     && node --check ./embedding-policy.mjs \
+    && node --check ./http-policy.mjs \
     && node --check ./node_modules/@tobilu/qmd/dist/store.js \
     && node --check ./node_modules/@tobilu/qmd/dist/cli/qmd.js \
     && test -d ./node_modules/@node-llama-cpp/linux-x64 \
@@ -31,7 +32,8 @@ LABEL org.opencontainers.image.title="QMD MCP" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.source="https://github.com/X1pheR/qmd-mcp" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="MIT" \
+      io.modelcontextprotocol.server.name="io.github.X1pheR/qmd-mcp"
 
 ENV NODE_ENV=production \
     PATH=/opt/qmd/node_modules/.bin:${PATH} \
