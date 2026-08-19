@@ -5,5 +5,6 @@
 !patch-qmd-bind.mjs
 !admin-server.mjs
 !embedding-policy.mjs
+!http-policy.mjs
 !tests/
 !tests/*.test.mjs
