@@ -206,7 +206,7 @@ Invalid bounded numeric values fail at startup instead of being silently accepte
 - MCP transport is not an authentication layer. Keep it on a trusted network boundary or place it behind an authenticated MCP gateway.
 - Production deployments should use an immutable release image digest instead of a branch, `latest`, or another moving tag.
 
-See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and deployment guidance.
+See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and deployment guidance and [`docs/SECURE-DEVELOPMENT.md`](docs/SECURE-DEVELOPMENT.md) for the secure-design principles, common weakness classes, and review expectations applied to the project.
 
 ## Upstream relationship
 
