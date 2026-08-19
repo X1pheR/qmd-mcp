@@ -6,7 +6,7 @@ FROM ${NODE_IMAGE} AS build
 WORKDIR /opt/qmd
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 COPY patch-qmd-bind.mjs admin-server.mjs embedding-policy.mjs http-policy.mjs ./
 COPY tests ./tests
@@ -21,6 +21,7 @@ RUN node ./patch-qmd-bind.mjs \
     && find ./node_modules/@node-llama-cpp \
          -mindepth 1 -maxdepth 1 -type d ! -name linux-x64 \
          -exec rm -rf {} + \
+    && npm prune --omit=dev --no-audit --no-fund \
     && rm -rf ./tests /root/.npm
 
 FROM ${NODE_IMAGE}

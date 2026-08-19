@@ -6,6 +6,8 @@ Do not open a public issue for a vulnerability that could expose indexed private
 
 Do not include real private documents, credentials, tokens, index databases or model caches in a report.
 
+The maintainer targets an initial response to vulnerability reports within 14 days. Publicly disclosed vulnerabilities that require a project fix are targeted for remediation within 60 days; if remediation cannot be completed in that window, the affected release and available mitigations will be documented.
+
 ## Deployment guidance
 
 - Mount indexed source collections read-only unless a separate workflow explicitly requires writes.

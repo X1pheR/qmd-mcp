@@ -7,6 +7,12 @@ QMD MCP packages [QMD](https://github.com/tobi/qmd) as a long-running Streamable
 
 This is a community-maintained integration. It is not affiliated with, endorsed by, or officially maintained by the upstream QMD project.
 
+## Feedback and contributions
+
+Use GitHub Issues for bug reports and feature requests and pull requests for proposed changes. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the development workflow, test requirements, and coding conventions. Security issues must follow the private process in [`SECURITY.md`](SECURITY.md).
+
+Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
+
 ## Quick start
 
 The public Docker image is published on GitHub Container Registry (GHCR):
@@ -210,7 +216,7 @@ See [`UPSTREAM.md`](UPSTREAM.md) for the current upstream version, patch invento
 
 ## Validation
 
-The container build is the primary validation boundary. It installs the locked dependency set, applies every upstream patch, and performs JavaScript syntax checks. CI also starts the image, initializes the MCP protocol, verifies the exact nine-tool surface, runs a real index update against a temporary Markdown collection, and verifies the resulting document count.
+The container build is the primary validation boundary. It installs the locked dependency set, applies every upstream patch, runs the complete unit/property test suite, performs JavaScript syntax checks, and prunes development-only dependencies before the runtime stage. CI also starts the image, initializes the MCP protocol, verifies the exact nine-tool surface, runs a real index update against a temporary Markdown collection, and verifies the resulting document count.
 
 Dependency and base-image updates are proposed by Dependabot. A QMD update is accepted only after the image build and functional release acceptance pass against the proposed version.
 

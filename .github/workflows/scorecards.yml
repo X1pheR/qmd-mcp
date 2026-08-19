@@ -1,6 +1,7 @@
 name: Scorecard analysis workflow
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
