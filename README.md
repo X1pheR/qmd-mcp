@@ -12,7 +12,7 @@ This is a community-maintained integration. It is not affiliated with, endorsed 
 The public Docker image is published on GitHub Container Registry (GHCR):
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.1.2
+ghcr.io/x1pher/qmd-mcp:v0.1.3
 ```
 
 The package is public, so Docker does not need a GitHub login to pull it.
@@ -65,7 +65,7 @@ collections:
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp:v0.1.2
+    image: ghcr.io/x1pher/qmd-mcp:v0.1.3
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -135,7 +135,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp:v0.1.2
+  ghcr.io/x1pher/qmd-mcp:v0.1.3
 ```
 
 ## What QMD MCP provides
@@ -216,7 +216,7 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Releases
 
-Versions use SemVer tags such as `v0.1.2`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
+Versions use SemVer tags such as `v0.1.3`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
 
 1. verifies that the tag matches `package.json`;
 2. builds the `linux/amd64` image;
