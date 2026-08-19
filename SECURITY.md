@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Do not open a public issue for a vulnerability that could expose indexed private content, authentication material or administrative access. Use GitHub private vulnerability reporting when available, or contact the repository owner through a private channel.
+Do not open a public issue for a vulnerability that could expose indexed private content, authentication material or administrative access. Use [GitHub private vulnerability reporting](https://github.com/X1pheR/qmd-mcp/security/advisories/new). If that route is unavailable, contact the repository owner through a private channel.
 
 Do not include real private documents, credentials, tokens, index databases or model caches in a report.
 

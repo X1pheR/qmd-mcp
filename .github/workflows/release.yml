@@ -15,11 +15,7 @@ on:
         required: true
         type: string
 
-permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
+permissions: read-all
 
 env:
   IMAGE: ghcr.io/x1pher/qmd-mcp
@@ -27,6 +23,11 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
