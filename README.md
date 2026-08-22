@@ -65,7 +65,7 @@ collections:
 
 `path` values refer to paths inside the container. The Compose example below mounts `./content` at `/vault`.
 
-`embedding: false` is a QMD MCP wrapper extension for collections that should remain lexical-only. The files are still indexed and available to explicit lexical (`lex`) searches, but they are excluded from embedding health, scheduled embedding and manual `start_embed` jobs. Use it for large append-only logs or other exact-lookup material where repeatedly rebuilding vectors adds cost without useful semantic recall.
+`embedding: false` is a QMD MCP wrapper extension for collections that should remain lexical-only. The files are still indexed and available to explicit lexical (`lex`) searches, but they are excluded from embedding health and manual `start_embed` jobs. Use it for large append-only logs or other exact-lookup material where repeatedly rebuilding vectors adds cost without useful semantic recall.
 
 ### 3. Create `compose.yml`
 
@@ -153,7 +153,7 @@ QMD MCP keeps QMD's read-oriented MCP tools and adds bounded administration oper
 - `start_update` starts a bounded asynchronous filesystem reindex job;
 - `start_embed` starts a bounded asynchronous embedding job;
 - `job_status` reports recent administration jobs;
-- scheduled refresh and embedding can run automatically while `embedding: false` collections remain lexical-only;
+- scheduled refresh updates the lexical/index state only; embeddings run explicitly through `start_embed`, while `embedding: false` collections remain lexical-only;
 - routine `query` runs with reranking disabled;
 - `query_reranked` provides a separate CPU-heavy reranked path;
 - query results can include an exact `source_relative_path` for authoritative filesystem handoff when `QMD_SOURCE_RELATIVE_ROOT` is configured and the source path resolves unambiguously;
@@ -188,10 +188,10 @@ The Dockerfile provides working defaults for the normal runtime paths and HTTP l
 | `QMD_DEFAULT_COLLECTION` | unset | Default collection for `start_embed`; otherwise the first configured collection is used |
 | `QMD_FORCE_CPU` | `0` | Set to `1` to disable acceleration probing and force CPU use |
 | `QMD_EMBED_PARALLELISM` | unset | Optional QMD embedding parallelism override |
-| `QMD_EMBED_MAX_DOCS_PER_BATCH` | `8` | Maximum documents per scheduled embedding batch; accepted range `1`-`32` |
-| `QMD_EMBED_MAX_BATCH_MB` | `16` | Maximum scheduled embedding batch size in MiB; accepted range `1`-`128` |
-| `QMD_EMBED_MAX_DURATION_MS` | `3600000` | Maximum scheduled embedding session length; accepted range `60000`-`7200000` ms |
-| `QMD_REFRESH_INTERVAL_MINUTES` | `15` | Scheduled refresh interval; `0` disables it, maximum `1440` |
+| `QMD_EMBED_MAX_DOCS_PER_BATCH` | `8` | Default maximum documents per explicit embedding batch; accepted range `1`-`32` |
+| `QMD_EMBED_MAX_BATCH_MB` | `16` | Default maximum explicit embedding batch size in MiB; accepted range `1`-`128` |
+| `QMD_EMBED_MAX_DURATION_MS` | `3600000` | Maximum embedding session length; accepted range `60000`-`7200000` ms |
+| `QMD_REFRESH_INTERVAL_MINUTES` | `15` | Scheduled index-refresh interval; refresh never starts embedding. `0` disables it, maximum `1440` |
 | `QMD_REFRESH_INITIAL_DELAY_SECONDS` | `120` | Delay before the first scheduled refresh; accepted range `0`-`3600` |
 
 Invalid bounded numeric values fail at startup instead of being silently accepted. `QMD_SOURCE_RELATIVE_ROOT` never exposes its absolute path; only a relative source path is returned, and ambiguous normalized-path collisions return `null` rather than guessing.

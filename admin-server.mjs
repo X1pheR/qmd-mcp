@@ -50,6 +50,7 @@ const healthOutputSchema = {
     initialDelaySeconds: z.number().int().nonnegative(),
     last: z.unknown().nullable(),
     next: z.string().nullable(),
+    embeddingAutomatic: z.boolean(),
     embedBatch: z.object({
       maxDocsPerBatch: z.number().int().positive(),
       maxBatchMb: z.number().int().positive(),
@@ -79,9 +80,9 @@ function readBoundedInteger(name, fallback, minimum, maximum) {
 
 const refreshIntervalMinutes = readBoundedInteger("QMD_REFRESH_INTERVAL_MINUTES", 15, 0, 1440);
 const refreshInitialDelaySeconds = readBoundedInteger("QMD_REFRESH_INITIAL_DELAY_SECONDS", 120, 0, 3600);
-const scheduledEmbedMaxDocsPerBatch = readBoundedInteger("QMD_EMBED_MAX_DOCS_PER_BATCH", 8, 1, 32);
-const scheduledEmbedMaxBatchMb = readBoundedInteger("QMD_EMBED_MAX_BATCH_MB", 16, 1, 128);
-const scheduledEmbedMaxDurationMs = readBoundedInteger("QMD_EMBED_MAX_DURATION_MS", 3_600_000, 60_000, 7_200_000);
+const defaultEmbedMaxDocsPerBatch = readBoundedInteger("QMD_EMBED_MAX_DOCS_PER_BATCH", 8, 1, 32);
+const defaultEmbedMaxBatchMb = readBoundedInteger("QMD_EMBED_MAX_BATCH_MB", 16, 1, 128);
+const embedMaxDurationMs = readBoundedInteger("QMD_EMBED_MAX_DURATION_MS", 3_600_000, 60_000, 7_200_000);
 
 const store = await createStore({ dbPath, configPath });
 
@@ -276,8 +277,7 @@ function startJob(type, parameters, execute) {
 
 async function startScheduledRefresh() {
   const selected = await collectionNames();
-  const embeddable = (await embeddingCollectionNames()).filter((name) => selected.includes(name));
-  return startJob("scheduled_refresh", { collections: selected, trigger: "timer" }, async (setProgress) => {
+  return startJob("scheduled_refresh", { collections: selected, trigger: "timer", embedding: false }, async (setProgress) => {
     setProgress({ phase: "update", collection: null });
     const update = await updateCollections(
       selected,
@@ -288,51 +288,13 @@ async function startScheduledRefresh() {
         total: progress.total,
       }),
     );
-
-    const statusAfterUpdate = await effectiveStatus();
-    if (statusAfterUpdate.needsEmbedding === 0) {
-      setProgress({ phase: "complete", collection: null, needsEmbedding: 0 });
-      return {
-        update,
-        embeddings: [],
-        embeddingSkipped: true,
-        needsEmbedding: 0,
-      };
-    }
-
-    const embeddings = [];
-    for (const collection of embeddable) {
-      if (effectiveNeedsEmbedding([collection]) === 0) continue;
-      setProgress({ phase: "embed", collection });
-      const result = await store.embed({
-        collection,
-        force: false,
-        maxDocsPerBatch: scheduledEmbedMaxDocsPerBatch,
-        maxBatchBytes: scheduledEmbedMaxBatchMb * 1024 * 1024,
-        chunkStrategy: "regex",
-        onProgress: (progress) => setProgress({
-          phase: "embed",
-          collection,
-          chunksEmbedded: progress.chunksEmbedded,
-          totalChunks: progress.totalChunks,
-          bytesProcessed: progress.bytesProcessed,
-          totalBytes: progress.totalBytes,
-          errors: progress.errors,
-        }),
-      });
-      embeddings.push({
-        collection,
-        docsProcessed: result.docsProcessed,
-        chunksEmbedded: result.chunksEmbedded,
-        errors: result.errors,
-        durationMs: result.durationMs,
-      });
-    }
+    const needsEmbedding = effectiveNeedsEmbedding();
+    setProgress({ phase: "complete", collection: null, needsEmbedding });
     return {
       update,
-      embeddings,
-      embeddingSkipped: embeddings.length === 0,
-      needsEmbedding: effectiveNeedsEmbedding(),
+      embeddings: [],
+      embeddingSkipped: true,
+      needsEmbedding,
     };
   });
 }
@@ -400,10 +362,11 @@ async function createMcpServer() {
           initialDelaySeconds: refreshInitialDelaySeconds,
           last: lastScheduledRefresh,
           next: nextScheduledRefreshAt,
+          embeddingAutomatic: false,
           embedBatch: {
-            maxDocsPerBatch: scheduledEmbedMaxDocsPerBatch,
-            maxBatchMb: scheduledEmbedMaxBatchMb,
-            maxDurationMinutes: scheduledEmbedMaxDurationMs / 60_000,
+            maxDocsPerBatch: defaultEmbedMaxDocsPerBatch,
+            maxBatchMb: defaultEmbedMaxBatchMb,
+            maxDurationMinutes: embedMaxDurationMs / 60_000,
           },
         },
       };
@@ -456,8 +419,8 @@ async function createMcpServer() {
       inputSchema: {
         collection: z.string().optional().describe("Configured embedding-enabled collection name. Defaults to QMD_DEFAULT_COLLECTION or the first embedding-enabled collection."),
         force: z.boolean().optional().default(false).describe("Rebuild existing embeddings as well as missing embeddings."),
-        maxDocsPerBatch: z.number().int().min(1).max(32).optional().default(8),
-        maxBatchMb: z.number().int().min(1).max(128).optional().default(16),
+        maxDocsPerBatch: z.number().int().min(1).max(32).optional().default(defaultEmbedMaxDocsPerBatch),
+        maxBatchMb: z.number().int().min(1).max(128).optional().default(defaultEmbedMaxBatchMb),
         chunkStrategy: z.enum(["auto", "regex"]).optional().default("auto"),
       },
       outputSchema: startJobOutputSchema,
