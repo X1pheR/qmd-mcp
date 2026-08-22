@@ -241,18 +241,24 @@ jobs:
           assert health["documents"] == 3, health
           assert health["needsEmbedding"] == 2, health
           PY
-      - name: Smoke lexical-only scheduled refresh
+      - name: Smoke update-only scheduled refresh
         run: |
           mkdir -p .ci-scheduler/config .ci-scheduler/vault/logs
           printf '%s\n' \
-            'global_context: CI scheduler lexical-only smoke.' \
+            'global_context: CI scheduler update-only smoke.' \
             'collections:' \
+            '  docs:' \
+            '    path: /vault' \
+            '    pattern: "**/*.md"' \
+            '    ignore:' \
+            '      - "logs/**"' \
             '  log:' \
             '    path: /vault/logs' \
             '    pattern: "history.md"' \
             '    includeByDefault: false' \
             '    embedding: false' \
             > .ci-scheduler/config/index.yml
+          printf '%s\n' '# Semantic source' 'qmd-scheduler-semantic-marker' > .ci-scheduler/vault/semantic.md
           printf '%s\n' '# Append-only history' 'qmd-scheduler-lexical-marker' > .ci-scheduler/vault/logs/history.md
 
           docker run -d --name qmd-mcp-scheduler-ci \
@@ -322,7 +328,7 @@ jobs:
                   result = scheduled["result"]
                   assert result["embeddingSkipped"] is True, scheduled
                   assert result["embeddings"] == [], scheduled
-                  assert result["needsEmbedding"] == 0, scheduled
+                  assert result["needsEmbedding"] == 1, scheduled
                   break
               if scheduled and scheduled["state"] in {"failed", "partial"}:
                   raise SystemExit(f"scheduled refresh ended as {scheduled['state']}")
@@ -337,8 +343,9 @@ jobs:
               "params": {"name": "health", "arguments": {}},
           }, session)
           payload = health["result"]["structuredContent"]
-          assert payload["status"]["needsEmbedding"] == 0, payload
-          assert payload["indexHealth"]["needsEmbedding"] == 0, payload
+          assert payload["status"]["needsEmbedding"] == 1, payload
+          assert payload["indexHealth"]["needsEmbedding"] == 1, payload
+          assert payload["scheduledRefresh"]["embeddingAutomatic"] is False, payload
 
           _, queried = post({
               "jsonrpc": "2.0",
