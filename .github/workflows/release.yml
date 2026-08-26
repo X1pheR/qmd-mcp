@@ -57,6 +57,11 @@ jobs:
           echo "tag=${tag}" >> "$GITHUB_OUTPUT"
           echo "revision=${revision}" >> "$GITHUB_OUTPUT"
 
+      - name: Run canonical local verifier
+        env:
+          VERIFY_REVISION: ${{ steps.version.outputs.revision }}
+        run: ./scripts/verify.sh
+
       - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
       - name: Log in to GHCR
@@ -110,7 +115,7 @@ jobs:
 
           \`${IMAGE_DIGEST}\`
 
-          Deployments should pin the digest rather than the tag.
+          Deployments should select the stable version tag. The resolved digest above is immutable provenance and live-acceptance evidence for that release.
           EOF2
           gh release create "${RELEASE_TAG}" \
             "${attestation_asset}#Sigstore attestation bundle" \
