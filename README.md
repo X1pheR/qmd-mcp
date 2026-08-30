@@ -19,7 +19,7 @@ Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
 The public Docker image is published on GitHub Container Registry (GHCR):
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.1.3
+ghcr.io/x1pher/qmd-mcp:v0.1.5
 ```
 
 The package is public, so Docker does not need a GitHub login to pull it.
@@ -72,7 +72,7 @@ collections:
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp:v0.1.3
+    image: ghcr.io/x1pher/qmd-mcp:v0.1.5
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -142,7 +142,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp:v0.1.3
+  ghcr.io/x1pher/qmd-mcp:v0.1.5
 ```
 
 ## What QMD MCP provides
@@ -157,7 +157,7 @@ QMD MCP keeps QMD's read-oriented MCP tools and adds bounded administration oper
 - routine `query` runs with reranking disabled;
 - `query_reranked` provides a separate CPU-heavy reranked path;
 - query results can include an exact `source_relative_path` for authoritative filesystem handoff when `QMD_SOURCE_RELATIVE_ROOT` is configured and the source path resolves unambiguously;
-- document retrieval returns internal text by default, with explicit opt-in MCP resource exposure.
+- document retrieval returns internal text by default; user-visible MCP resource exposure requires both `exposeToUser=true` and `confirmUserApprovedExposure=true`, and preview/show/open/render/inspect intent is not approval.
 
 Only one administration job runs at a time. Completed jobs are retained in memory with a bounded history. See [`docs/tools.md`](docs/tools.md) for the complete nine-tool reference, including access level and side effects.
 
@@ -223,7 +223,7 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Releases
 
-Versions use SemVer tags such as `v0.1.3`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
+Versions use SemVer tags such as `v0.1.5`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
 
 1. verifies that the tag matches `package.json`;
 2. builds the `linux/amd64` image;

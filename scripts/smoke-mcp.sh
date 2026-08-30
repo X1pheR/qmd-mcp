@@ -80,6 +80,10 @@ expected = {"query", "query_reranked", "get", "multi_get", "status", "health", "
 assert set(tools) == expected, set(tools)
 assert tools["start_update"]["annotations"]["destructiveHint"] is True
 assert tools["start_embed"]["annotations"]["destructiveHint"] is True
+for name in ("get", "multi_get"):
+    properties = tools[name]["inputSchema"]["properties"]
+    assert "exposeToUser" in properties, tools[name]
+    assert "confirmUserApprovedExposure" in properties, tools[name]
 
 oversized = urllib.request.Request(
     base + "/mcp",
@@ -208,6 +212,66 @@ _, effective_status = post({
     "params": {"name": "status", "arguments": {}},
 }, session)
 assert effective_status["result"]["structuredContent"]["needsEmbedding"] == 2, effective_status
+
+_, internal_get = post({
+    "jsonrpc": "2.0",
+    "id": 10,
+    "method": "tools/call",
+    "params": {
+        "name": "get",
+        "arguments": {"file": "docs/meta/source-path.md", "lineNumbers": False},
+    },
+}, session)
+assert internal_get["result"].get("isError") is not True, internal_get
+assert internal_get["result"]["content"][0]["type"] == "text", internal_get
+
+_, unapproved_exposure = post({
+    "jsonrpc": "2.0",
+    "id": 11,
+    "method": "tools/call",
+    "params": {
+        "name": "get",
+        "arguments": {
+            "file": "docs/meta/source-path.md",
+            "lineNumbers": False,
+            "exposeToUser": True,
+        },
+    },
+}, session)
+assert unapproved_exposure["result"].get("isError") is True, unapproved_exposure
+assert "explicit user approval" in unapproved_exposure["result"]["content"][0]["text"].lower(), unapproved_exposure
+
+_, approved_exposure = post({
+    "jsonrpc": "2.0",
+    "id": 12,
+    "method": "tools/call",
+    "params": {
+        "name": "get",
+        "arguments": {
+            "file": "docs/meta/source-path.md",
+            "lineNumbers": False,
+            "exposeToUser": True,
+            "confirmUserApprovedExposure": True,
+        },
+    },
+}, session)
+assert approved_exposure["result"].get("isError") is not True, approved_exposure
+assert approved_exposure["result"]["content"][0]["type"] == "resource", approved_exposure
+
+_, unapproved_multi_exposure = post({
+    "jsonrpc": "2.0",
+    "id": 13,
+    "method": "tools/call",
+    "params": {
+        "name": "multi_get",
+        "arguments": {
+            "pattern": "docs/meta/source-path.md",
+            "lineNumbers": False,
+            "exposeToUser": True,
+        },
+    },
+}, session)
+assert unapproved_multi_exposure["result"].get("isError") is True, unapproved_multi_exposure
 
 with urllib.request.urlopen(base + "/health", timeout=2) as response:
     health = json.load(response)
