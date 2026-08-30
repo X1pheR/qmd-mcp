@@ -2,6 +2,22 @@
 
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
+## [0.1.5] - 2026-08-30
+
+- Added a fail-closed two-part approval gate for user-visible MCP resources returned by `get` and `multi_get`.
+- `exposeToUser=true` is now insufficient by itself; callers must also set `confirmUserApprovedExposure=true` after explicit user approval.
+- Preview/show/open/render/inspect intent is explicitly excluded from resource-exposure approval, while default document retrieval remains internal text.
+- Added live MCP smoke coverage for internal reads, denied unapproved exposure, approved exposure, and `multi_get` denial.
+
+Security: this release hardens a user-visible resource exposure boundary so accidental caller/tool selection cannot expose QMD content as an MCP resource.
+
+## [0.1.4] - 2026-08-22
+
+- Decoupled scheduled refresh from embeddings: scheduled refresh now updates the lexical/index state only, while embedding remains an explicit `start_embed` operation.
+- Added CI coverage for the scheduled-refresh incident-prevention behavior.
+
+Security: no disclosed vulnerability was fixed in this release.
+
 ## [0.1.3] - 2026-08-19
 
 - Hardened MCP request handling with a 1 MiB request-body limit and protocol-correct malformed-JSON errors.

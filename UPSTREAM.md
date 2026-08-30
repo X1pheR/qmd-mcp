@@ -23,7 +23,7 @@ The current patch set provides:
 4. export of the upstream MCP server factory so the wrapper can extend one unified tool surface;
 5. a routine `query` tool with reranking disabled;
 6. a separate bounded `query_reranked` tool;
-7. internal-text defaults for `get` and `multi_get`, with explicit resource exposure opt-in;
+7. internal-text defaults for `get` and `multi_get`, with a two-part explicit user-approval gate for resource exposure (`exposeToUser` plus `confirmUserApprovedExposure`);
 8. configurable embedding maximum duration;
 9. filtering of model-cache `.etag` sidecars from doctor diagnostics.
 

@@ -42,13 +42,13 @@ This tool is read-only but can be substantially more CPU-intensive than `query`.
 
 Retrieves one document by indexed path or document ID. `file` is required. A path or document ID can include a `:from:count` suffix for bounded line-range retrieval. `fromLine` and `maxLines` provide equivalent explicit controls.
 
-`lineNumbers` defaults to `true`. `exposeToUser` defaults to `false`; setting it to `true` changes the MCP response from internal text to a user-visible resource and should be done only when the caller explicitly intends that exposure.
+`lineNumbers` defaults to `true`. `exposeToUser` defaults to `false` and always returns internal text when false. User-visible resource exposure requires both `exposeToUser=true` and `confirmUserApprovedExposure=true`; the confirmation may be set only after the user explicitly approves resource exposure. Preview/show/open/render/inspect intent is not approval and is blocked from becoming a resource.
 
 ### `multi_get`
 
 Retrieves multiple documents using a glob pattern or comma-separated list. `pattern` is required. `maxBytes` defaults to 10240 bytes per file, and `maxLines` can further bound output.
 
-`lineNumbers` defaults to `true`. `exposeToUser` has the same explicit resource-exposure semantics as `get`.
+`lineNumbers` defaults to `true`. `exposeToUser` and `confirmUserApprovedExposure` have the same two-part resource-exposure semantics as `get`; without explicit confirmation, exposure is blocked before any resource content is returned.
 
 ## Status tools
 
