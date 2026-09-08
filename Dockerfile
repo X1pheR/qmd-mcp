@@ -1,9 +1,16 @@
-ARG NODE_IMAGE=node:22-bookworm-slim@sha256:a17d50af28002a160548bd4225b3cfcb12c5efcb171f79e68758f2885fb1b066
-ARG VERSION=0.1.5
+ARG NODE_IMAGE=node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5
+ARG VERSION=0.1.6
 ARG REVISION=unknown
 FROM ${NODE_IMAGE} AS build
+ARG TARGETARCH
 
 WORKDIR /opt/qmd
+
+RUN if [ "${TARGETARCH}" = "arm64" ]; then \
+      apt-get update \
+      && apt-get install -y --no-install-recommends python3 make g++ \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -17,11 +24,16 @@ RUN node ./patch-qmd-bind.mjs \
     && node --check ./http-policy.mjs \
     && node --check ./node_modules/@tobilu/qmd/dist/store.js \
     && node --check ./node_modules/@tobilu/qmd/dist/cli/qmd.js \
-    && test -d ./node_modules/@node-llama-cpp/linux-x64 \
-    && find ./node_modules/@node-llama-cpp \
-         -mindepth 1 -maxdepth 1 -type d ! -name linux-x64 \
-         -exec rm -rf {} + \
     && npm prune --omit=dev --no-audit --no-fund \
+    && case "${TARGETARCH}" in \
+         amd64) llama_runtime=linux-x64 ;; \
+         arm64) llama_runtime=linux-arm64 ;; \
+         *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+       esac \
+    && test -d "./node_modules/@node-llama-cpp/${llama_runtime}" \
+    && find ./node_modules/@node-llama-cpp \
+         -mindepth 1 -maxdepth 1 -type d ! -name "${llama_runtime}" \
+         -exec rm -rf {} + \
     && rm -rf ./tests /root/.npm
 
 FROM ${NODE_IMAGE}
