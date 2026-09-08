@@ -19,14 +19,14 @@ Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
 The public Docker image is published on GitHub Container Registry (GHCR):
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.1.5
+ghcr.io/x1pher/qmd-mcp:v0.1.6
 ```
 
 The package is public, so Docker does not need a GitHub login to pull it.
 
 For production deployments, use the immutable digest published in the corresponding GitHub Release rather than relying on the version tag alone.
 
-The image currently supports `linux/amd64`. It intentionally retains only the QMD `linux-x64` native llama runtime to keep the image bounded.
+The image supports `linux/amd64` and `linux/arm64`. Each platform image retains only its matching QMD native llama runtime to keep the image bounded.
 
 ### 1. Create the directories
 
@@ -72,7 +72,7 @@ collections:
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp:v0.1.5
+    image: ghcr.io/x1pher/qmd-mcp:v0.1.6
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -142,7 +142,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp:v0.1.5
+  ghcr.io/x1pher/qmd-mcp:v0.1.6
 ```
 
 ## What QMD MCP provides
@@ -223,10 +223,10 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Releases
 
-Versions use SemVer tags such as `v0.1.5`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
+Versions use SemVer tags such as `v0.1.6`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
 
 1. verifies that the tag matches `package.json`;
-2. builds the `linux/amd64` image;
+2. builds the `linux/amd64` and `linux/arm64` images and publishes one multi-architecture tag;
 3. publishes it to GHCR;
 4. records the immutable image digest;
 5. publishes SBOM/provenance and a GitHub attestation;

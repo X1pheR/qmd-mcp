@@ -2,6 +2,15 @@
 
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
+## [0.1.6] - 2026-09-08
+
+- Added native `linux/arm64` packaging alongside `linux/amd64` without changing the pinned QMD 2.5.3 dependency baseline.
+- Selects and retains only the architecture-matching `@node-llama-cpp` CPU runtime in each image, correcting the prior prune order that allowed optional runtimes to be re-materialized.
+- Pins the existing Node 22.23.2 base through its multi-architecture index, installs ARM64-only native compilation prerequisites in the disposable build stage, and enables ARM64 emulation only in the GitHub publication workflow.
+- Extends the canonical verifier with architecture-specific runtime-package checks.
+
+Security: no disclosed vulnerability was fixed in this release.
+
 ## [0.1.5] - 2026-08-30
 
 - Added a fail-closed two-part approval gate for user-visible MCP resources returned by `get` and `multi_get`.
