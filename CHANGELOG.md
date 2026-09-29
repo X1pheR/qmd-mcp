@@ -2,6 +2,13 @@
 
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
+## [0.1.7] - 2026-09-09
+
+- Invalidates the exact-source-path cache for successfully updated collections so newly indexed files expose `source_relative_path` immediately instead of waiting for the 60-second query-cache TTL.
+- Keeps the normal source-path query cache and QMD 2.5.3 dependency baseline unchanged.
+
+Security: no disclosed vulnerability was fixed in this release.
+
 ## [0.1.6] - 2026-09-08
 
 - Added native `linux/arm64` packaging alongside `linux/amd64` without changing the pinned QMD 2.5.3 dependency baseline.
