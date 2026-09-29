@@ -71,6 +71,10 @@ const SOURCE_PATH_EXCLUDE_DIRS = ["node_modules", ".git", ".cache", "vendor", "d
 const sourcePathCache = new Map();
 const sourceRelativeRoot = (process.env.QMD_SOURCE_RELATIVE_ROOT || "").trim() || null;
 
+export function invalidateSourcePathCache(collectionNames) {
+    for (const collectionName of collectionNames) sourcePathCache.delete(collectionName);
+}
+
 function relativeToConfiguredSourceRoot(absolutePath) {
     if (!sourceRelativeRoot) return null;
     const candidate = relative(resolve(sourceRelativeRoot), resolve(absolutePath));

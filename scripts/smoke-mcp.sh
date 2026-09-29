@@ -164,6 +164,49 @@ match = next(item for item in results if item["source_relative_path"] == "_meta/
 assert match["collection"] == "docs"
 assert match["file"] == "docs/meta/source-path.md"
 
+# Prime the source-path cache above, then add a new source and require a successful
+# update to invalidate that cache immediately rather than waiting for the 60s TTL.
+from pathlib import Path
+Path(".ci-smoke/vault/delta.md").write_text("# Delta\nqmd-source-path-delta-marker\n", encoding="utf-8")
+_, delta_started = post({
+    "jsonrpc": "2.0",
+    "id": 50,
+    "method": "tools/call",
+    "params": {"name": "start_update", "arguments": {"collections": ["docs"]}},
+}, session)
+delta_job_id = delta_started["result"]["structuredContent"]["job"]["id"]
+for _ in range(30):
+    _, delta_status = post({
+        "jsonrpc": "2.0",
+        "id": 51,
+        "method": "tools/call",
+        "params": {"name": "job_status", "arguments": {"jobId": delta_job_id}},
+    }, session)
+    delta_job = delta_status["result"]["structuredContent"]["job"]
+    if delta_job["state"] == "succeeded":
+        break
+    if delta_job["state"] in {"failed", "partial"}:
+        raise SystemExit(f"delta update job ended as {delta_job['state']}")
+    time.sleep(0.5)
+else:
+    raise SystemExit("delta update job did not finish")
+
+_, delta_query = post({
+    "jsonrpc": "2.0",
+    "id": 52,
+    "method": "tools/call",
+    "params": {
+        "name": "query",
+        "arguments": {
+            "searches": [{"type": "lex", "query": "qmd-source-path-delta-marker"}],
+            "collections": ["docs"],
+            "limit": 3,
+        },
+    },
+}, session)
+delta_results = delta_query["result"]["structuredContent"]["results"]
+assert any(item["source_relative_path"] == "delta.md" for item in delta_results), delta_query
+
 _, log_query = post({
     "jsonrpc": "2.0",
     "id": 6,
@@ -211,7 +254,7 @@ _, effective_status = post({
     "method": "tools/call",
     "params": {"name": "status", "arguments": {}},
 }, session)
-assert effective_status["result"]["structuredContent"]["needsEmbedding"] == 2, effective_status
+assert effective_status["result"]["structuredContent"]["needsEmbedding"] == 3, effective_status
 
 _, internal_get = post({
     "jsonrpc": "2.0",
@@ -275,6 +318,6 @@ assert unapproved_multi_exposure["result"].get("isError") is True, unapproved_mu
 
 with urllib.request.urlopen(base + "/health", timeout=2) as response:
     health = json.load(response)
-assert health["documents"] == 3, health
-assert health["needsEmbedding"] == 2, health
+assert health["documents"] == 4, health
+assert health["needsEmbedding"] == 3, health
 PY
