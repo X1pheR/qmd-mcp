@@ -24,10 +24,11 @@ The current patch set provides:
 5. a routine `query` tool with reranking disabled;
 6. a separate bounded `query_reranked` tool;
 7. internal-text defaults for `get` and `multi_get`, with a two-part explicit user-approval gate for resource exposure (`exposeToUser` plus `confirmUserApprovedExposure`);
-8. configurable embedding maximum duration;
-9. filtering of model-cache `.etag` sidecars from doctor diagnostics.
+8. configurable embedding maximum duration with an aligned 60-minute default;
+9. filtering of model-cache `.etag` sidecars from doctor diagnostics;
+10. optional embedding AbortSignal forwarding and cooperative guards around setup, preparation, retries and sequential/parallel native calls.
 
-`admin-server.mjs` wires the HTTP/session layer, shared `maintenance-jobs.mjs` lifecycle, update-only refresh and opt-in `embedding-scheduler.mjs`. The scheduler currently enforces deadline/query boundaries between collections; native signal forwarding into the pinned SDK remains a required unreleased follow-up.
+`admin-server.mjs` wires the HTTP/session layer, shared `maintenance-jobs.mjs` lifecycle, update-only refresh and opt-in `embedding-scheduler.mjs`. The scheduler enforces one shared cooperative deadline through the pinned SDK and native loops; already-started evaluations are awaited and incomplete vectors remain eligible. `patch-embedding-deadline.mjs` owns these exact-match upstream deltas. Behavioral tests execute the patched upstream functions with fake native contexts; they do not measure real model latency or memory.
 
 ## Update process
 

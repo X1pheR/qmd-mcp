@@ -58,7 +58,7 @@ Returns QMD's collection, document-count and index status without changing state
 
 ### `health`
 
-Returns the wrapper's bounded health contract, including document and embedding state plus the current administration-job state. It does not start maintenance work. `scheduledEmbedding` reports enablement, cadence, last outcome, next planned check and reused embedding bounds. `scheduledRefresh.embeddingAutomatic: false` remains refresh-local. Scheduler state resets on restart.
+Returns the wrapper's bounded health contract, including document and embedding state plus the current administration-job state. It does not start maintenance work. `scheduledEmbedding` reports enablement, cadence, last outcome, next planned check and reused embedding bounds. `scheduledRefresh.embeddingAutomatic: false` remains refresh-local. Scheduler state resets on restart. Scheduled embedding shares one cooperative deadline through native loops: abort stops new work, while in-flight calls settle before the maintenance claim is released. Partial document vectors are removed for later retry; this is not a hard wall-clock timeout.
 
 ### `job_status`
 
