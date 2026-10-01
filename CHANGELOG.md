@@ -2,7 +2,7 @@
 
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-10-01
 
 - Adds opt-in automatic embedding with policy/pending selection, sequential collections and a shared maintenance claim; busy/query checks skip without queued catch-up.
 - Adds scheduledEmbedding health and truthful partial/failure outcomes while refresh stays update-only.
@@ -12,7 +12,7 @@ All notable changes to QMD MCP are documented here. Versions follow Semantic Ver
 
 Scheduling is disabled by default. CPU/RAM/swap limits and one-writer deployment remain operator responsibilities. Cooperative deadlines do not hard-limit a running native call.
 
-Security: no disclosed vulnerability was fixed in this candidate.
+Security: no disclosed vulnerability was fixed in this release.
 
 ## [0.1.7] - 2026-09-09
 

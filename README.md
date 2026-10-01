@@ -16,13 +16,11 @@ Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Quick start
 
-Release images are published on GitHub Container Registry (GHCR). The next release candidate is:
+Release images are published on GitHub Container Registry (GHCR):
 
 ```text
 ghcr.io/x1pher/qmd-mcp:v0.2.0
 ```
-
-Version `0.2.0` is prepared but not published yet. Existing installations can use accepted `v0.1.7`; automatic embedding requires this candidate or a later accepted release. To try the candidate before publication, build it with `docker build -t qmd-mcp:local .` and substitute `qmd-mcp:local` in the examples below.
 
 Published packages are public, so Docker does not need a GitHub login to pull an accepted release.
 
