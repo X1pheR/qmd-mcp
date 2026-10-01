@@ -103,6 +103,9 @@ payload = health["result"]["structuredContent"]
 assert payload["status"]["needsEmbedding"] == 1, payload
 assert payload["indexHealth"]["needsEmbedding"] == 1, payload
 assert payload["scheduledRefresh"]["embeddingAutomatic"] is False, payload
+assert payload["scheduledEmbedding"]["enabled"] is False, payload
+assert payload["scheduledEmbedding"]["last"] is None, payload
+assert payload["scheduledEmbedding"]["next"] is None, payload
 
 _, queried = post({
     "jsonrpc": "2.0",

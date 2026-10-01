@@ -58,9 +58,11 @@ Returns QMD's collection, document-count and index status without changing state
 
 ### `health`
 
-Returns the wrapper's bounded health contract, including document and embedding state plus the current administration-job state. It does not start maintenance work.
+Returns the wrapper's bounded health contract, including document and embedding state plus the current administration-job state. It does not start maintenance work. `scheduledEmbedding` reports enablement, cadence, last outcome, next planned check and reused embedding bounds. `scheduledRefresh.embeddingAutomatic: false` remains refresh-local. Scheduler state resets on restart.
 
 ### `job_status`
+
+Scheduled embedding uses the existing `queued`, `running`, `succeeded`, `partial` and `failed` states. Busy/query/no-pending checks create no job. Aggregate results preserve collection-labelled embedding results, bounded errors and current pending debt.
 
 Returns a specific administration job when `jobId` is supplied. Without an ID it returns a bounded recent-job list; `limit` defaults to 5 and is bounded to 1-20.
 

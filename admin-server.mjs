@@ -1,5 +1,7 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { createEmbeddingScheduler } from "./embedding-scheduler.mjs";
+import { readBoundedInteger } from "./runtime-config.mjs";
 import { createMaintenanceJobs, publicJob } from "./maintenance-jobs.mjs";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createMcpServer as createReadMcpServer, invalidateSourcePathCache } from "./node_modules/@tobilu/qmd/dist/mcp/server.js";
@@ -45,6 +47,11 @@ const healthOutputSchema = {
   activeQueries: z.number().int().nonnegative(),
   lastActivityAt: z.string().nullable(),
   activeJob: publicJobOutputSchema.nullable(),
+  scheduledEmbedding: z.object({
+    enabled: z.boolean(), intervalMinutes: z.number().int().nonnegative(),
+    initialDelaySeconds: z.number().int().nonnegative(), last: z.unknown().nullable(),
+    next: z.string().nullable(), embedBatch: z.unknown(),
+  }),
   scheduledRefresh: z.object({
     enabled: z.boolean(),
     intervalMinutes: z.number().int().nonnegative(),
@@ -69,15 +76,8 @@ const jobStatusOutputSchema = {
   jobs: z.array(publicJobOutputSchema).optional(),
 };
 
-function readBoundedInteger(name, fallback, minimum, maximum) {
-  const raw = process.env[name];
-  if (raw === undefined || raw === "") return fallback;
-  const value = Number(raw);
-  if (!Number.isInteger(value) || value < minimum || value > maximum) {
-    throw new Error(`${name} must be an integer between ${minimum} and ${maximum}`);
-  }
-  return value;
-}
+const embedIntervalMinutes = readBoundedInteger("QMD_EMBED_INTERVAL_MINUTES", 0, 0, 1440);
+const embedInitialDelaySeconds = readBoundedInteger("QMD_EMBED_INITIAL_DELAY_SECONDS", 120, 0, 3600);
 
 const refreshIntervalMinutes = readBoundedInteger("QMD_REFRESH_INTERVAL_MINUTES", 15, 0, 1440);
 const refreshInitialDelaySeconds = readBoundedInteger("QMD_REFRESH_INITIAL_DELAY_SECONDS", 120, 0, 3600);
@@ -144,6 +144,14 @@ let refreshTimer = null;
 let refreshStartTimer = null;
 let lastScheduledRefresh = null;
 const startedAt = Date.now();
+const embeddingSchedule = createEmbeddingScheduler({
+  intervalMinutes: embedIntervalMinutes, initialDelaySeconds: embedInitialDelaySeconds,
+  maxDurationMs: embedMaxDurationMs, maxDocsPerBatch: defaultEmbedMaxDocsPerBatch,
+  maxBatchMb: defaultEmbedMaxBatchMb, maintenance,
+  getConfig: embeddingConfig, pending: effectiveNeedsEmbedding,
+  activeQueries: () => activeQueries, embed: options => store.embed(options), sanitizeError,
+  parallelism: process.env.QMD_EMBED_PARALLELISM ? "configured" : "automatic",
+});
 
 function now() {
   return new Date().toISOString();
@@ -271,6 +279,7 @@ async function createMcpServer() {
         activeQueries,
         lastActivityAt,
         activeJob: maintenance.activeJobId ? publicJob(jobs.get(maintenance.activeJobId)) : null,
+        scheduledEmbedding: embeddingSchedule.health(),
         scheduledRefresh: {
           enabled: refreshIntervalMinutes > 0,
           intervalMinutes: refreshIntervalMinutes,
@@ -443,6 +452,7 @@ const httpServer = createServer(async (nodeRequest, nodeResponse) => {
         activeJob: maintenance.activeJobId,
         lastActivityAt,
         nextScheduledRefreshAt,
+        scheduledEmbedding: embeddingSchedule.health(),
         scheduledRefreshEnabled: refreshIntervalMinutes > 0,
         refreshIntervalMinutes,
       }));
@@ -540,6 +550,7 @@ await new Promise((resolve, reject) => {
 });
 console.error(`QMD unified MCP listening on http://${host}:${port}/mcp`);
 startRefreshSchedule();
+embeddingSchedule.start();
 
 let stopping = false;
 async function stop() {
@@ -547,6 +558,7 @@ async function stop() {
   stopping = true;
   if (refreshStartTimer) clearTimeout(refreshStartTimer);
   if (refreshTimer) clearInterval(refreshTimer);
+  embeddingSchedule.stop();
   const drained = maintenance.stop();
   for (const transport of sessions.values()) await transport.close();
   sessions.clear();

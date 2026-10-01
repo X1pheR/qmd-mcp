@@ -188,13 +188,29 @@ The Dockerfile provides working defaults for the normal runtime paths and HTTP l
 | `QMD_DEFAULT_COLLECTION` | unset | Default collection for `start_embed`; otherwise the first configured collection is used |
 | `QMD_FORCE_CPU` | `0` | Set to `1` to disable acceleration probing and force CPU use |
 | `QMD_EMBED_PARALLELISM` | unset | Optional QMD embedding parallelism override |
-| `QMD_EMBED_MAX_DOCS_PER_BATCH` | `8` | Default maximum documents per explicit embedding batch; accepted range `1`-`32` |
-| `QMD_EMBED_MAX_BATCH_MB` | `16` | Default maximum explicit embedding batch size in MiB; accepted range `1`-`128` |
+| `QMD_EMBED_MAX_DOCS_PER_BATCH` | `8` | Default maximum documents per manual or scheduled embedding batch; accepted range `1`-`32` |
+| `QMD_EMBED_MAX_BATCH_MB` | `16` | Default maximum manual or scheduled embedding batch size in MiB; accepted range `1`-`128` |
 | `QMD_EMBED_MAX_DURATION_MS` | `3600000` | Maximum embedding session length; accepted range `60000`-`7200000` ms |
+| `QMD_EMBED_INTERVAL_MINUTES` | `0` | Automatic embedding check interval; `0` disables all embedding timers. Integer `0`-`1440` minutes |
+| `QMD_EMBED_INITIAL_DELAY_SECONDS` | `120` | First automatic embedding check delay; integer `0`-`3600` seconds |
 | `QMD_REFRESH_INTERVAL_MINUTES` | `15` | Scheduled index-refresh interval; refresh never starts embedding. `0` disables it, maximum `1440` |
 | `QMD_REFRESH_INITIAL_DELAY_SECONDS` | `120` | Delay before the first scheduled refresh; accepted range `0`-`3600` |
 
 Invalid bounded numeric values fail at startup instead of being silently accepted. `QMD_SOURCE_RELATIVE_ROOT` never exposes its absolute path; only a relative source path is returned, and ambiguous normalized-path collisions return `null` rather than guessing.
+
+## Automatic embedding
+
+Automatic embedding is disabled by default. Set a positive `QMD_EMBED_INTERVAL_MINUTES` to enable periodic checks after `QMD_EMBED_INITIAL_DELAY_SECONDS`.
+
+Each check selects pending work using the effective collection `embedding` policy. Missing `embedding` means enabled; default search selection and `QMD_DEFAULT_COLLECTION` do not limit the scheduler. One `scheduled_embed` job processes collections sequentially under the same maintenance claim as manual jobs and refresh. Busy or active-query checks skip without queuing work. Policy and pending work are rechecked before each collection.
+
+Partial or failed collections retain committed vectors and leave unfinished work eligible for a later check. Results preserve per-collection outcomes and current aggregate pending work. Successful/no-op/skipped checks are quiet; incomplete runs log a compact summary without document content.
+
+MCP `health` and HTTP `/health` expose `scheduledEmbedding` enablement, interval, initial delay, last outcome, next planned check and reused embedding bounds. State is process-local and resets on restart. The next check is a plan, not a promised job start. `scheduledRefresh.embeddingAutomatic: false` describes refresh only: refresh remains update-only.
+
+The scheduler uses one cooperative time budget and stops starting collections after observing its deadline. **Current implementation boundary:** the pinned upstream SDK does not yet forward the scheduler signal through native embedding. An already-started collection can continue its internal batches; deep native-call cancellation is not yet implemented. Shutdown clears scheduler timers and waits for actual maintenance completion before closing the store. This candidate requires the native signal patch and its tests before release acceptance.
+
+Use one server writer per index; other replicas or direct CLI writers are outside the process-local claim. Batch bytes are a packing target, not a RAM ceiling. Deployments must supply appropriate CPU/RAM/swap limits and embedding parallelism. Query deferral applies at admission and between collections; queries arriving during a collection keep the existing behavior.
 
 ## Security model
 

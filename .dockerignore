@@ -5,6 +5,8 @@
 !patch-qmd-bind.mjs
 !admin-server.mjs
 !maintenance-jobs.mjs
+!embedding-scheduler.mjs
+!runtime-config.mjs
 !embedding-policy.mjs
 !http-policy.mjs
 !tests/

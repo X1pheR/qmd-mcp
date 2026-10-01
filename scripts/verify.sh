@@ -3,7 +3,7 @@ set -euo pipefail
 command -v docker >/dev/null
 command -v python3 >/dev/null
 revision="${VERIFY_REVISION:-$(git rev-parse HEAD)}"
-cleanup(){ docker rm -f qmd-mcp-ci qmd-mcp-scheduler-ci >/dev/null 2>&1 || true; rm -rf .ci-smoke .ci-scheduler; }
+cleanup(){ docker rm -f qmd-mcp-ci qmd-mcp-scheduler-ci qmd-mcp-embedding-ci >/dev/null 2>&1 || true; rm -rf .ci-smoke .ci-scheduler .ci-embedding; }
 trap cleanup EXIT
 cleanup
 docker build --build-arg VERSION=ci --build-arg REVISION="$revision" -t qmd-mcp:ci .
@@ -22,6 +22,7 @@ docker run --rm --entrypoint sh -e EXPECTED_LLAMA_RUNTIME="${llama_runtime}" qmd
 docker rm -f qmd-mcp-ci >/dev/null 2>&1 || true
 ./scripts/smoke-scheduler.sh
 docker rm -f qmd-mcp-scheduler-ci >/dev/null 2>&1 || true
+./scripts/smoke-embedding-scheduler.sh
 git diff --check
 python3 - <<'PY'
 from pathlib import Path

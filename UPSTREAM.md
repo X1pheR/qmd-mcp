@@ -27,7 +27,7 @@ The current patch set provides:
 8. configurable embedding maximum duration;
 9. filtering of model-cache `.etag` sidecars from doctor diagnostics.
 
-`admin-server.mjs` adds the long-running HTTP/session layer, bounded administration jobs and scheduled refresh behavior.
+`admin-server.mjs` wires the HTTP/session layer, shared `maintenance-jobs.mjs` lifecycle, update-only refresh and opt-in `embedding-scheduler.mjs`. The scheduler currently enforces deadline/query boundaries between collections; native signal forwarding into the pinned SDK remains a required unreleased follow-up.
 
 ## Update process
 
