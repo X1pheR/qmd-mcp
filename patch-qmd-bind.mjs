@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync } from "node:fs";
+import { patchEmbeddingDeadline } from "./patch-embedding-deadline.mjs";
 
 const target = "/opt/qmd/node_modules/@tobilu/qmd/dist/mcp/server.js";
 let source = readFileSync(target, "utf8");
@@ -329,7 +330,15 @@ storeSource = replaceExactlyOnce(
     })(), name: 'generateEmbeddings' });`,
   "embedding max duration",
 );
-writeFileSync(storeTarget, storeSource, "utf8");
+const sdkTarget = "/opt/qmd/node_modules/@tobilu/qmd/dist/index.js";
+const llmTarget = "/opt/qmd/node_modules/@tobilu/qmd/dist/llm.js";
+const deadlineSources = patchEmbeddingDeadline({
+  sdk: readFileSync(sdkTarget, "utf8"), store: storeSource,
+  llm: readFileSync(llmTarget, "utf8"),
+});
+writeFileSync(sdkTarget, deadlineSources.sdk, "utf8");
+writeFileSync(llmTarget, deadlineSources.llm, "utf8");
+writeFileSync(storeTarget, deadlineSources.store, "utf8");
 
 const cliTarget = "/opt/qmd/node_modules/@tobilu/qmd/dist/cli/qmd.js";
 let cliSource = readFileSync(cliTarget, "utf8");

@@ -3,7 +3,11 @@
 !package.json
 !package-lock.json
 !patch-qmd-bind.mjs
+!patch-embedding-deadline.mjs
 !admin-server.mjs
+!maintenance-jobs.mjs
+!embedding-scheduler.mjs
+!runtime-config.mjs
 !embedding-policy.mjs
 !http-policy.mjs
 !tests/

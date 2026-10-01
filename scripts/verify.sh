@@ -3,7 +3,7 @@ set -euo pipefail
 command -v docker >/dev/null
 command -v python3 >/dev/null
 revision="${VERIFY_REVISION:-$(git rev-parse HEAD)}"
-cleanup(){ docker rm -f qmd-mcp-ci qmd-mcp-scheduler-ci >/dev/null 2>&1 || true; rm -rf .ci-smoke .ci-scheduler; }
+cleanup(){ docker rm -f qmd-mcp-ci qmd-mcp-scheduler-ci qmd-mcp-embedding-ci >/dev/null 2>&1 || true; rm -rf .ci-smoke .ci-scheduler .ci-embedding; }
 trap cleanup EXIT
 cleanup
 docker build --build-arg VERSION=ci --build-arg REVISION="$revision" -t qmd-mcp:ci .
@@ -22,9 +22,24 @@ docker run --rm --entrypoint sh -e EXPECTED_LLAMA_RUNTIME="${llama_runtime}" qmd
 docker rm -f qmd-mcp-ci >/dev/null 2>&1 || true
 ./scripts/smoke-scheduler.sh
 docker rm -f qmd-mcp-scheduler-ci >/dev/null 2>&1 || true
+./scripts/smoke-embedding-scheduler.sh
 git diff --check
 python3 - <<'PY'
+import json
 from pathlib import Path
+package=json.loads(Path('package.json').read_text())
+lock=json.loads(Path('package-lock.json').read_text())
+server=json.loads(Path('server.json').read_text())
+version=package['version']
+assert lock['version']==version and lock['packages']['']['version']==version
+assert server['version']==version, 'MCP Registry version must match release candidate'
+assert server['packages'][0]['identifier']==f'ghcr.io/x1pher/qmd-mcp:v{version}'
+assert f'ARG VERSION={version}\n' in Path('Dockerfile').read_text()
+assert f'## [{version}]' in Path('CHANGELOG.md').read_text()
+readme=Path('README.md').read_text()
+assert 'immutable digest published' not in readme and 'immutable release image digest instead' not in readme
+assert 'stable version tag' in readme
+
 ci=Path('.github/workflows/ci.yml').read_text(encoding='utf-8')
 assert '\non:\n' in ci
 assert '\ntrue:\n' not in ci

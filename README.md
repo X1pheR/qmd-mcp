@@ -16,15 +16,17 @@ Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Quick start
 
-The public Docker image is published on GitHub Container Registry (GHCR):
+Release images are published on GitHub Container Registry (GHCR). The next release candidate is:
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.1.7
+ghcr.io/x1pher/qmd-mcp:v0.2.0
 ```
 
-The package is public, so Docker does not need a GitHub login to pull it.
+Version `0.2.0` is prepared but not published yet. Existing installations can use accepted `v0.1.7`; automatic embedding requires this candidate or a later accepted release. To try the candidate before publication, build it with `docker build -t qmd-mcp:local .` and substitute `qmd-mcp:local` in the examples below.
 
-For production deployments, use the immutable digest published in the corresponding GitHub Release rather than relying on the version tag alone.
+Published packages are public, so Docker does not need a GitHub login to pull an accepted release.
+
+For production deployments, select the stable version tag from an accepted GitHub Release. Retain its resolved digest as immutable provenance and rollback evidence.
 
 The image supports `linux/amd64` and `linux/arm64`. Each platform image retains only its matching QMD native llama runtime to keep the image bounded.
 
@@ -45,18 +47,18 @@ global_context: >-
   read the source document before relying on a material claim.
 
 collections:
-  notes:
+  docs:
     path: /vault
     pattern: "**/*.md"
     ignore:
-      - "archive/**"
+      - "notes/**"
 
-  archive:
-    path: /vault/archive
+  notes:
+    path: /vault/notes
     pattern: "**/*.md"
     includeByDefault: false
 
-  append-only-log:
+  history:
     path: /vault/logs
     pattern: "history.md"
     includeByDefault: false
@@ -72,7 +74,7 @@ collections:
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp:v0.1.7
+    image: ghcr.io/x1pher/qmd-mcp:v0.2.0
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -142,7 +144,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp:v0.1.7
+  ghcr.io/x1pher/qmd-mcp:v0.2.0
 ```
 
 ## What QMD MCP provides
@@ -188,13 +190,29 @@ The Dockerfile provides working defaults for the normal runtime paths and HTTP l
 | `QMD_DEFAULT_COLLECTION` | unset | Default collection for `start_embed`; otherwise the first configured collection is used |
 | `QMD_FORCE_CPU` | `0` | Set to `1` to disable acceleration probing and force CPU use |
 | `QMD_EMBED_PARALLELISM` | unset | Optional QMD embedding parallelism override |
-| `QMD_EMBED_MAX_DOCS_PER_BATCH` | `8` | Default maximum documents per explicit embedding batch; accepted range `1`-`32` |
-| `QMD_EMBED_MAX_BATCH_MB` | `16` | Default maximum explicit embedding batch size in MiB; accepted range `1`-`128` |
+| `QMD_EMBED_MAX_DOCS_PER_BATCH` | `8` | Default maximum documents per manual or scheduled embedding batch; accepted range `1`-`32` |
+| `QMD_EMBED_MAX_BATCH_MB` | `16` | Default maximum manual or scheduled embedding batch size in MiB; accepted range `1`-`128` |
 | `QMD_EMBED_MAX_DURATION_MS` | `3600000` | Maximum embedding session length; accepted range `60000`-`7200000` ms |
+| `QMD_EMBED_INTERVAL_MINUTES` | `0` | Automatic embedding check interval; `0` disables all embedding timers. Integer `0`-`1440` minutes |
+| `QMD_EMBED_INITIAL_DELAY_SECONDS` | `120` | First automatic embedding check delay; integer `0`-`3600` seconds |
 | `QMD_REFRESH_INTERVAL_MINUTES` | `15` | Scheduled index-refresh interval; refresh never starts embedding. `0` disables it, maximum `1440` |
 | `QMD_REFRESH_INITIAL_DELAY_SECONDS` | `120` | Delay before the first scheduled refresh; accepted range `0`-`3600` |
 
 Invalid bounded numeric values fail at startup instead of being silently accepted. `QMD_SOURCE_RELATIVE_ROOT` never exposes its absolute path; only a relative source path is returned, and ambiguous normalized-path collisions return `null` rather than guessing.
+
+## Automatic embedding
+
+Automatic embedding is disabled by default. Set a positive `QMD_EMBED_INTERVAL_MINUTES` to enable periodic checks after `QMD_EMBED_INITIAL_DELAY_SECONDS`.
+
+Each check selects pending work using the effective collection `embedding` policy. Missing `embedding` means enabled; default search selection and `QMD_DEFAULT_COLLECTION` do not limit the scheduler. One `scheduled_embed` job processes collections sequentially under the same maintenance claim as manual jobs and refresh. Busy or active-query checks skip without queuing work. Policy and pending work are rechecked before each collection.
+
+Partial or failed collections retain committed vectors and leave unfinished work eligible for a later check. Results preserve per-collection outcomes and current aggregate pending work. Successful/no-op/skipped checks are quiet; incomplete runs log a compact summary without document content.
+
+MCP `health` and HTTP `/health` expose `scheduledEmbedding` enablement, interval, initial delay, last outcome, next planned check and reused embedding bounds. State is process-local and resets on restart. The next check is a plan, not a promised job start. `scheduledRefresh.embeddingAutomatic: false` describes refresh only: refresh remains update-only.
+
+The scheduler uses one shared cooperative time budget. Its optional AbortSignal is forwarded through the pinned SDK, embedding session and native loops. After observing abort, no new document preparation, retry or native evaluation starts. Already-started native calls are awaited, including parallel workers, and incomplete document vectors are removed so later checks can retry them. Shutdown clears scheduler timers and waits for actual maintenance completion before closing the store. A cooperative deadline cannot hard-limit an in-flight native call's wall-clock duration. Manual embedding retains its per-collection session duration; the absent duration default is 3600000 ms.
+
+Use one server writer per index; other replicas or direct CLI writers are outside the process-local claim. Batch bytes are a packing target, not a RAM ceiling. Deployments must supply appropriate CPU/RAM/swap limits and embedding parallelism. Query deferral applies at admission and between collections; queries arriving during a collection keep the existing behavior.
 
 ## Security model
 
@@ -205,7 +223,7 @@ Invalid bounded numeric values fail at startup instead of being silently accepte
 - MCP request bodies are capped at 1 MiB before JSON parsing.
 - Error messages redact configured index and config paths.
 - MCP transport is not an authentication layer. Keep it on a trusted network boundary or place it behind an authenticated MCP gateway.
-- Production deployments should use an immutable release image digest instead of a branch, `latest`, or another moving tag.
+- Production deployments should select a stable version tag instead of a branch, `latest`, or another moving tag; retain the resolved digest as artifact evidence.
 
 See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and deployment guidance and [`docs/SECURE-DEVELOPMENT.md`](docs/SECURE-DEVELOPMENT.md) for the secure-design principles, common weakness classes, and review expectations applied to the project.
 
@@ -213,7 +231,7 @@ See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and deployment guid
 
 This repository is not a fork of the full QMD source tree. It consumes an exact `@tobilu/qmd` package version and applies a small fail-closed compatibility patch set during image build. The build fails if an expected upstream patch target no longer matches exactly.
 
-See [`UPSTREAM.md`](UPSTREAM.md) for the current upstream version, patch inventory, and update process.
+See [`UPSTREAM.md`](UPSTREAM.md) for the current upstream version, patch inventory, and update process. [Automatic embedding acceptance](docs/automatic-embedding-acceptance.md) maps the behavioral and image checks.
 
 ## Validation
 
@@ -223,7 +241,7 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Releases
 
-Versions use SemVer tags such as `v0.1.7`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
+Versions use SemVer tags such as `v0.2.0`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
 
 1. verifies that the tag matches `package.json`;
 2. builds the `linux/amd64` and `linux/arm64` images and publishes one multi-architecture tag;
