@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { createMaintenanceJobs, publicJob } from "./maintenance-jobs.mjs";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { createMcpServer as createReadMcpServer, invalidateSourcePathCache } from "./node_modules/@tobilu/qmd/dist/mcp/server.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
@@ -134,8 +135,8 @@ const readStore = {
 embeddingConfig();
 
 const sessions = new Map();
-const jobs = new Map();
-let activeJobId = null;
+const maintenance = createMaintenanceJobs({ maxRetainedJobs, now, markActivity, sanitizeError });
+const { jobs, startJob } = maintenance;
 let activeQueries = 0;
 let lastActivityAt = null;
 let nextScheduledRefreshAt = null;
@@ -153,7 +154,7 @@ function markActivity() {
 }
 
 function runtimeState() {
-  if (activeJobId) return "maintenance";
+  if (maintenance.activeJobId) return "maintenance";
   if (activeQueries > 0) return "querying";
   return "idle";
 }
@@ -169,43 +170,6 @@ function trackedQueryCount(payload) {
 function sanitizeError(error) {
   const message = error instanceof Error ? error.message : String(error);
   return message.replaceAll(dbPath, "<index>").replaceAll(configPath, "<config>").slice(0, 1000);
-}
-
-function publicJob(job) {
-  return {
-    id: job.id,
-    type: job.type,
-    state: job.state,
-    createdAt: job.createdAt,
-    startedAt: job.startedAt,
-    finishedAt: job.finishedAt,
-    parameters: job.parameters,
-    progress: job.progress,
-    result: job.result,
-    error: job.error,
-  };
-}
-
-function resultErrorCount(result) {
-  if (!result || typeof result !== "object") return 0;
-  let total = Number.isFinite(result.errors) ? Number(result.errors) : 0;
-  if (Array.isArray(result.embeddings)) {
-    total += result.embeddings.reduce(
-      (sum, embedding) => sum + (Number.isFinite(embedding?.errors) ? Number(embedding.errors) : 0),
-      0,
-    );
-  }
-  return total;
-}
-
-function pruneJobs() {
-  const completed = [...jobs.values()]
-    .filter((job) => job.state !== "running" && job.state !== "queued")
-    .sort((left, right) => String(left.finishedAt).localeCompare(String(right.finishedAt)));
-  while (jobs.size > maxRetainedJobs && completed.length > 0) {
-    const oldest = completed.shift();
-    jobs.delete(oldest.id);
-  }
 }
 
 async function collectionNames() {
@@ -224,56 +188,6 @@ async function validateCollections(requested) {
     throw new Error(`Unknown collection(s): ${invalid.join(", ")}. Available: ${available.join(", ")}`);
   }
   return selected;
-}
-
-function startJob(type, parameters, execute) {
-  if (activeJobId) {
-    const active = jobs.get(activeJobId);
-    if (active && ["queued", "running"].includes(active.state)) {
-      throw new Error(`Job already active: ${active.id} (${active.type})`);
-    }
-    activeJobId = null;
-  }
-
-  const job = {
-    id: randomUUID(),
-    type,
-    state: "queued",
-    createdAt: now(),
-    startedAt: null,
-    finishedAt: null,
-    parameters,
-    progress: null,
-    result: null,
-    error: null,
-  };
-  jobs.set(job.id, job);
-  activeJobId = job.id;
-  markActivity();
-  pruneJobs();
-
-  queueMicrotask(async () => {
-    job.state = "running";
-    job.startedAt = now();
-    try {
-      job.result = await execute((progress) => {
-        job.progress = progress;
-      });
-      job.state = resultErrorCount(job.result) > 0 ? "partial" : "succeeded";
-    } catch (error) {
-      job.state = "failed";
-      job.error = sanitizeError(error);
-    } finally {
-      job.finishedAt = now();
-      if (activeJobId === job.id) {
-        activeJobId = null;
-      }
-      markActivity();
-      pruneJobs();
-    }
-  });
-
-  return publicJob(job);
 }
 
 async function startScheduledRefresh() {
@@ -303,8 +217,8 @@ async function startScheduledRefresh() {
 async function scheduledRefreshTick() {
   const attemptedAt = now();
   try {
-    if (activeJobId) {
-      lastScheduledRefresh = { attemptedAt, state: "skipped_busy", jobId: activeJobId };
+    if (maintenance.activeJobId) {
+      lastScheduledRefresh = { attemptedAt, state: "skipped_busy", jobId: maintenance.activeJobId };
       return;
     }
     const job = await startScheduledRefresh();
@@ -356,7 +270,7 @@ async function createMcpServer() {
         state: runtimeState(),
         activeQueries,
         lastActivityAt,
-        activeJob: activeJobId ? publicJob(jobs.get(activeJobId)) : null,
+        activeJob: maintenance.activeJobId ? publicJob(jobs.get(maintenance.activeJobId)) : null,
         scheduledRefresh: {
           enabled: refreshIntervalMinutes > 0,
           intervalMinutes: refreshIntervalMinutes,
@@ -526,7 +440,7 @@ const httpServer = createServer(async (nodeRequest, nodeResponse) => {
         needsEmbedding: status.needsEmbedding,
         embeddings: status.needsEmbedding === 0 ? "Current" : `${status.needsEmbedding} pending`,
         activeQueries,
-        activeJob: activeJobId,
+        activeJob: maintenance.activeJobId,
         lastActivityAt,
         nextScheduledRefreshAt,
         scheduledRefreshEnabled: refreshIntervalMinutes > 0,
@@ -633,9 +547,11 @@ async function stop() {
   stopping = true;
   if (refreshStartTimer) clearTimeout(refreshStartTimer);
   if (refreshTimer) clearInterval(refreshTimer);
+  const drained = maintenance.stop();
   for (const transport of sessions.values()) await transport.close();
   sessions.clear();
   await new Promise((resolve) => httpServer.close(resolve));
+  await drained;
   await store.close();
 }
 

@@ -15,11 +15,12 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-COPY patch-qmd-bind.mjs admin-server.mjs embedding-policy.mjs http-policy.mjs ./
+COPY patch-qmd-bind.mjs admin-server.mjs maintenance-jobs.mjs embedding-policy.mjs http-policy.mjs ./
 COPY tests ./tests
 RUN node ./patch-qmd-bind.mjs \
     && npm test \
     && node --check ./admin-server.mjs \
+    && node --check ./maintenance-jobs.mjs \
     && node --check ./embedding-policy.mjs \
     && node --check ./http-policy.mjs \
     && node --check ./node_modules/@tobilu/qmd/dist/store.js \
