@@ -4,7 +4,7 @@ mkdir -p .ci-embedding/config .ci-embedding/vault
 printf '%s\n' 'collections:' '  docs:' '    path: /vault' '    pattern: "**/*.md"' '    embedding: false' > .ci-embedding/config/index.yml
 cleanup(){ docker rm -f qmd-mcp-embedding-ci >/dev/null 2>&1 || true; rm -rf .ci-embedding; }
 trap cleanup EXIT
-docker run -d --name qmd-mcp-embedding-ci --label hypershell.purpose=qmd-embedding-smoke \
+docker run -d --name qmd-mcp-embedding-ci --label qmd.purpose=embedding-smoke \
   -p 127.0.0.1:18183:8181 -e QMD_FORCE_CPU=1 -e QMD_REFRESH_INTERVAL_MINUTES=0 \
   -e QMD_EMBED_INTERVAL_MINUTES=1 -e QMD_EMBED_INITIAL_DELAY_SECONDS=1 \
   -v "$PWD/.ci-embedding/config:/config:ro" -v "$PWD/.ci-embedding/vault:/vault:ro" qmd-mcp:ci

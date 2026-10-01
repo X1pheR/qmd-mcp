@@ -2,6 +2,18 @@
 
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
+## [0.2.0] - Unreleased
+
+- Adds opt-in automatic embedding with policy/pending selection, sequential collections and a shared maintenance claim; busy/query checks skip without queued catch-up.
+- Adds scheduledEmbedding health and truthful partial/failure outcomes while refresh stays update-only.
+- Propagates a shared cooperative AbortSignal through QMD SDK/store/session and native workers. Already-started calls settle; incomplete document vectors are removed for later retry.
+- Drains maintained work before store closure and aligns the absent embedding-duration default to 60 minutes.
+- Keeps QMD 2.5.3 and existing dependencies unchanged; expands behavioral/image acceptance and aligns release/Registry metadata.
+
+Scheduling is disabled by default. CPU/RAM/swap limits and one-writer deployment remain operator responsibilities. Cooperative deadlines do not hard-limit a running native call.
+
+Security: no disclosed vulnerability was fixed in this candidate.
+
 ## [0.1.7] - 2026-09-09
 
 - Invalidates the exact-source-path cache for successfully updated collections so newly indexed files expose `source_relative_path` immediately instead of waiting for the 60-second query-cache TTL.

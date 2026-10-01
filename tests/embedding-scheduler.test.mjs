@@ -172,3 +172,79 @@ test("AE-12/T20: initial delay then interval checks skip busy without queueing",
   h.scheduler.stop();
   assert.equal(h.timers.size, 0);
 });
+
+
+test("T02: initial delay accepts boundaries and rejects malformed values", () => {
+  for (const value of ["0", "3600"]) assert.equal(readBoundedInteger("X", 120, 0, 3600, { X: value }), Number(value));
+  for (const value of ["-1", "3601", "0.5", "invalid"]) assert.throws(() => readBoundedInteger("X", 120, 0, 3600, { X: value }), /integer/);
+  assert.equal(readBoundedInteger("X", 120, 0, 3600, {}), 120);
+});
+test("T05/T21: queued and running manual embed/refresh jobs skip quietly", async () => {
+  for (const type of ["embed", "refresh"]) {
+    const h = harness(), held = deferred();
+    const job = h.maintenance.startJob(type, {}, () => held.promise);
+    h.scheduler.tick(); await turn(); h.scheduler.tick();
+    assert.equal(h.maintenance.activeJobId, job.id); assert.equal(h.maintenance.jobs.size, 1);
+    assert.equal(h.calls.length, 0); assert.deepEqual(h.warnings, []);
+    held.resolve(); await finish(h);
+  }
+});
+test("T10: a removed collection is skipped before its turn", async () => {
+  let h; h = harness({ embed: async value => { h.calls.push(value); h.debt.docs = 0; delete h.config.collections.notes; return { errors: 0 }; } });
+  h.scheduler.tick(); await finish(h); assert.deepEqual(h.calls.map(v => v.collection), ["docs"]);
+  assert.equal(h.scheduler.health().last.state, "succeeded");
+});
+test("T11: a middle collection failure preserves success and permits the next collection", async () => {
+  let h; h = harness({ embed: async value => {
+    h.calls.push(value);
+    if (value.collection === "notes") throw new Error("failure");
+    h.debt[value.collection] = 0; return { chunksEmbedded: 1, errors: 0 };
+  } });
+  h.config.collections.history.embedding = true;
+  const job = h.scheduler.tick(); await finish(h);
+  assert.deepEqual(h.calls.map(v => v.collection), ["docs", "notes", "history"]);
+  assert.equal(h.maintenance.jobs.get(job.id).result.embeddings.length, 2);
+  assert.equal(h.maintenance.jobs.get(job.id).state, "partial");
+});
+test("T14/T15: later collection shares the original signal and deadline timer while native work drains", async () => {
+  const held = deferred(); let h;
+  h = harness({ embed: async value => {
+    h.calls.push(value);
+    if (value.collection === "docs") { h.debt.docs = 0; h.setTime(59000); return { errors: 0 }; }
+    await held.promise; return { errors: 0 };
+  } });
+  const job = h.scheduler.tick(); await turn();
+  assert.equal(h.calls.length, 2); assert.equal(h.calls[0].signal, h.calls[1].signal);
+  const deadlineTimers = [...h.timers.values()].filter(t => !t.repeat);
+  assert.equal(deadlineTimers.length, 1); assert.equal(deadlineTimers[0].delay, 60000);
+  deadlineTimers[0].fn(); assert.equal(h.calls[1].signal.aborted, true);
+  assert.equal(h.maintenance.activeJobId, job.id);
+  held.resolve(); await finish(h);
+  assert.equal(h.scheduler.health().last.state, "partial"); assert.equal(h.maintenance.activeJobId, null);
+});
+test("T13: a deadline with no chunk errors leaves the hash eligible on the next tick", async () => {
+  let h, interrupted = true;
+  h = harness({ embed: async value => {
+    h.calls.push(value);
+    if (interrupted) { interrupted = false; h.setTime(60001); return { errors: 0, chunksEmbedded: 0 }; }
+    h.debt[value.collection] = 0; return { errors: 0, chunksEmbedded: 1 };
+  } });
+  const first = h.scheduler.tick(); await finish(h);
+  assert.equal(h.maintenance.jobs.get(first.id).state, "partial"); assert.equal(h.debt.docs, 1);
+  h.scheduler.tick(); await finish(h);
+  assert.equal(h.debt.docs, 0); assert.equal(h.debt.notes, 0); assert.equal(h.scheduler.health().last.state, "succeeded");
+});
+test("T19: stopping a queued scheduled job prevents embedding before store closure", async () => {
+  const h = harness(); h.scheduler.tick(); h.scheduler.stop();
+  let closed = false; const shutdown = h.maintenance.stop().then(() => { closed = true; });
+  assert.equal(closed, false); await shutdown;
+  assert.equal(h.calls.length, 0); assert.equal(h.maintenance.activeJobId, null); assert.equal(closed, true);
+});
+
+test("T10/T21: configuration parse failure starts no job and reports only a sanitized failure", () => {
+  const h = harness({ getConfig: () => { throw new Error("private YAML path"); } });
+  assert.equal(h.scheduler.tick(), null); assert.equal(h.maintenance.jobs.size, 0);
+  assert.equal(h.scheduler.health().last.state, "failed_to_start");
+  assert.equal(h.scheduler.health().last.error, "safe failure");
+  assert.equal(h.warnings.length, 1); assert.ok(!h.warnings[0].includes("private"));
+});

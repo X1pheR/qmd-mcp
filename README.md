@@ -16,15 +16,17 @@ Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Quick start
 
-The public Docker image is published on GitHub Container Registry (GHCR):
+Release images are published on GitHub Container Registry (GHCR). The next release candidate is:
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.1.7
+ghcr.io/x1pher/qmd-mcp:v0.2.0
 ```
 
-The package is public, so Docker does not need a GitHub login to pull it.
+Version `0.2.0` is prepared but not published yet. Existing installations can use accepted `v0.1.7`; automatic embedding requires this candidate or a later accepted release. To try the candidate before publication, build it with `docker build -t qmd-mcp:local .` and substitute `qmd-mcp:local` in the examples below.
 
-For production deployments, use the immutable digest published in the corresponding GitHub Release rather than relying on the version tag alone.
+Published packages are public, so Docker does not need a GitHub login to pull an accepted release.
+
+For production deployments, select the stable version tag from an accepted GitHub Release. Retain its resolved digest as immutable provenance and rollback evidence.
 
 The image supports `linux/amd64` and `linux/arm64`. Each platform image retains only its matching QMD native llama runtime to keep the image bounded.
 
@@ -45,18 +47,18 @@ global_context: >-
   read the source document before relying on a material claim.
 
 collections:
-  notes:
+  docs:
     path: /vault
     pattern: "**/*.md"
     ignore:
-      - "archive/**"
+      - "notes/**"
 
-  archive:
-    path: /vault/archive
+  notes:
+    path: /vault/notes
     pattern: "**/*.md"
     includeByDefault: false
 
-  append-only-log:
+  history:
     path: /vault/logs
     pattern: "history.md"
     includeByDefault: false
@@ -72,7 +74,7 @@ collections:
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp:v0.1.7
+    image: ghcr.io/x1pher/qmd-mcp:v0.2.0
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -142,7 +144,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp:v0.1.7
+  ghcr.io/x1pher/qmd-mcp:v0.2.0
 ```
 
 ## What QMD MCP provides
@@ -221,7 +223,7 @@ Use one server writer per index; other replicas or direct CLI writers are outsid
 - MCP request bodies are capped at 1 MiB before JSON parsing.
 - Error messages redact configured index and config paths.
 - MCP transport is not an authentication layer. Keep it on a trusted network boundary or place it behind an authenticated MCP gateway.
-- Production deployments should use an immutable release image digest instead of a branch, `latest`, or another moving tag.
+- Production deployments should select a stable version tag instead of a branch, `latest`, or another moving tag; retain the resolved digest as artifact evidence.
 
 See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and deployment guidance and [`docs/SECURE-DEVELOPMENT.md`](docs/SECURE-DEVELOPMENT.md) for the secure-design principles, common weakness classes, and review expectations applied to the project.
 
@@ -229,7 +231,7 @@ See [`SECURITY.md`](SECURITY.md) for vulnerability reporting and deployment guid
 
 This repository is not a fork of the full QMD source tree. It consumes an exact `@tobilu/qmd` package version and applies a small fail-closed compatibility patch set during image build. The build fails if an expected upstream patch target no longer matches exactly.
 
-See [`UPSTREAM.md`](UPSTREAM.md) for the current upstream version, patch inventory, and update process.
+See [`UPSTREAM.md`](UPSTREAM.md) for the current upstream version, patch inventory, and update process. [Automatic embedding acceptance](docs/automatic-embedding-acceptance.md) maps the behavioral and image checks.
 
 ## Validation
 
@@ -239,7 +241,7 @@ Dependency and base-image updates are proposed by Dependabot. A QMD update is ac
 
 ## Releases
 
-Versions use SemVer tags such as `v0.1.7`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
+Versions use SemVer tags such as `v0.2.0`. A release must point to an exact CI-green commit. The tag-triggered Release workflow:
 
 1. verifies that the tag matches `package.json`;
 2. builds the `linux/amd64` and `linux/arm64` images and publishes one multi-architecture tag;
