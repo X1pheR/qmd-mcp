@@ -14,6 +14,7 @@ export function createEmbeddingScheduler({
 }) {
   let initialTimer = null, intervalTimer = null, next = null, last = null;
   let started = false, stopped = false, runController = null, activeDeadlineTimer = null;
+  let lastFirstCollection = null;
   const timestamp = () => new Date(clock.now()).toISOString();
   const health = () => ({
     enabled: intervalMinutes > 0, intervalMinutes, initialDelaySeconds, last, next,
@@ -47,7 +48,7 @@ export function createEmbeddingScheduler({
         try {
           let observedChunks = 0;
           const value = await embed({
-            collection, force: false, chunkStrategy: "auto",
+            collection, force: false, chunkStrategy: "auto", resumeIncomplete: true,
             maxDocsPerBatch, maxBatchBytes: maxBatchMb * 1024 * 1024, signal,
             onProgress(progress) {
               observedChunks = Math.max(observedChunks, progress.chunksEmbedded || 0);
@@ -88,11 +89,17 @@ export function createEmbeddingScheduler({
         last = { attemptedAt, state: "skipped_busy", jobId: maintenance.activeJobId }; return null;
       }
       if (activeQueries() > 0) { last = { attemptedAt, state: "skipped_querying" }; return null; }
-      const selected = embeddingEnabledCollectionNames(getConfig()).filter(name => pending([name]) > 0);
+      let selected = embeddingEnabledCollectionNames(getConfig()).filter(name => pending([name]) > 0);
       if (selected.length === 0) { last = { attemptedAt, state: "no_pending_work" }; return null; }
+      const previousIndex = lastFirstCollection === null ? -1 : selected.indexOf(lastFirstCollection);
+      if (previousIndex >= 0 && selected.length > 1) {
+        const start = (previousIndex + 1) % selected.length;
+        selected = [...selected.slice(start), ...selected.slice(0, start)];
+      }
       // No await between admission and the shared synchronous maintenance claim.
       const job = maintenance.startJob("scheduled_embed", { collections: selected, trigger: "timer", force: false },
         (setProgress, signal) => sweep(selected, setProgress, signal), classify);
+      lastFirstCollection = selected[0];
       last = { attemptedAt, state: "started", jobId: job.id };
       void maintenance.waitForIdle().then(() => {
         const finished = maintenance.jobs.get(job.id);

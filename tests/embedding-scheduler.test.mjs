@@ -248,3 +248,26 @@ test("T10/T21: configuration parse failure starts no job and reports only a sani
   assert.equal(h.scheduler.health().last.error, "safe failure");
   assert.equal(h.warnings.length, 1); assert.ok(!h.warnings[0].includes("private"));
 });
+
+
+test("AE-25: consecutive short runs rotate the first eligible collection", async () => {
+  let h;
+  h = harness({ embed: async value => {
+    h.calls.push(value);
+    h.setTime(60001);
+    return { errors: 0, chunksEmbedded: 0 };
+  } });
+  const first = h.scheduler.tick(); await finish(h);
+  assert.equal(h.maintenance.jobs.get(first.id).result.stopReason, "deadline");
+  h.setTime(0);
+  const second = h.scheduler.tick(); await finish(h);
+  assert.equal(h.maintenance.jobs.get(second.id).result.stopReason, "deadline");
+  assert.deepEqual(h.calls.slice(0, 2).map(value => value.collection), ["docs", "notes"]);
+});
+
+
+test("AE-27: scheduled embedding requests resumable chunk checkpoints", async () => {
+  const h = harness();
+  h.scheduler.tick(); await finish(h);
+  assert.equal(h.calls[0].resumeIncomplete, true);
+});

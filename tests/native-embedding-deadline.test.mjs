@@ -132,8 +132,8 @@ test("T16: tokenizer cancellation rejects the entire preparation without a hard 
   assert.equal((await chunk("a", 100, 0, 0, "docs.md", "auto", controller.signal)).length, 0);
 });
 
-function storeFixture({ separate = false, abortPreparation = false } = {}) {
-  const controller = new AbortController(), rows = new Map(); let singleCalls = 0, batchCalls = 0, sessionOptions, clears = 0;
+function storeFixture({ separate = false, abortPreparation = false, chunkCount = 2, rows = new Map() } = {}) {
+  const controller = new AbortController(), batchInputs = []; let singleCalls = 0, batchCalls = 0, sessionOptions, clears = 0;
   const docs = separate ? [{ hash: "a", path: "a.md", body: "a", bytes: 1 }, { hash: "b", path: "b.md", body: "b", bytes: 1 }]
     : [{ hash: "a", path: "a.md", body: "a", bytes: 1 }];
   const db = { prepare(sql) { return {
@@ -142,7 +142,7 @@ function storeFixture({ separate = false, abortPreparation = false } = {}) {
   }; } };
   const Session = sessionClass(), llm = {
     embed: async () => { singleCalls++; return { embedding: [1] }; },
-    embedBatch: async () => { batchCalls++; controller.abort(); return [{ embedding: [1] }, null]; },
+    embedBatch: async texts => { batchCalls++; batchInputs.push([...texts]); controller.abort(); return texts.map((_, index) => index === 0 ? { embedding: [1] } : null); },
   };
   const manager = { acquire() {}, release() {}, operationStart() {}, operationEnd() {}, getLlamaCpp: () => llm };
   const cleanup = between(storeSource, "function removeIncompleteEmbeddings(", "// =============================================================================\n// Query expansion");
@@ -156,7 +156,7 @@ function storeFixture({ separate = false, abortPreparation = false } = {}) {
     extractTitle: () => "test", formatDocForEmbedding: text => text,
     chunkDocumentByTokens: async () => {
       if (abortPreparation) { controller.abort(); return []; }
-      return (separate ? ["x"] : ["x", "y"]).map((text, pos) => ({ text, pos, tokens: 1 }));
+      return (separate ? ["x"] : Array.from({ length: chunkCount }, (_, index) => "chunk-" + index)).map((text, pos) => ({ text, pos, tokens: 1 }));
     },
     insertEmbedding: (_db, hash, seq) => { if (!rows.has(hash)) rows.set(hash, new Set()); rows.get(hash).add(seq); },
     withLazyContentVectorMigration: (_db, fn) => fn(),
@@ -166,12 +166,42 @@ function storeFixture({ separate = false, abortPreparation = false } = {}) {
     },
   });
   return { controller, rows, run: options => generate({ db, ensureVecTable() {} }, { signal: controller.signal, ...options }),
-    state: () => ({ singleCalls, batchCalls, sessionOptions, clears }) };
+    state: () => ({ singleCalls, batchCalls, batchInputs, sessionOptions, clears }) };
 }
 test("T16: interrupted hash loses partial vectors and remains eligible for a later sweep", async () => {
   const fixture = storeFixture(), result = await fixture.run();
   assert.equal(result.chunksEmbedded, 0); assert.equal(fixture.rows.size, 0);
   assert.equal(fixture.state().singleCalls, 1); assert.equal(fixture.state().batchCalls, 1);
+});
+test("AE-26: resumable scheduled interruption retains completed chunk checkpoints", async () => {
+  const fixture = storeFixture(), result = await fixture.run({ resumeIncomplete: true });
+  assert.equal(result.chunksEmbedded, 1);
+  assert.deepEqual([...fixture.rows.get("a")], [0]);
+});
+test("AE-28: resumable run skips already persisted chunk sequences", async () => {
+  const fixture = storeFixture();
+  fixture.rows.set("a", new Set([0]));
+  await fixture.run({ resumeIncomplete: true });
+  assert.deepEqual(fixture.state().batchInputs[0], ["chunk-1"]);
+});
+test("AE-29: cooperative deadline cancellation is not reported as model failure", async () => {
+  const fixture = storeFixture({ chunkCount: 40 });
+  const result = await fixture.run({ resumeIncomplete: true });
+  assert.equal(result.errors, 0);
+  assert.equal(result.chunksEmbedded, 1);
+});
+test("AE-31: two short resumable runs make cumulative progress and complete the hash", async () => {
+  const rows = new Map();
+  const first = storeFixture({ rows });
+  const firstResult = await first.run({ resumeIncomplete: true });
+  assert.equal(firstResult.chunksEmbedded, 1);
+  assert.deepEqual([...rows.get("a")], [0]);
+
+  const second = storeFixture({ rows });
+  const secondResult = await second.run({ resumeIncomplete: true });
+  assert.equal(secondResult.chunksEmbedded, 1);
+  assert.deepEqual([...rows.get("a")].sort((a, b) => a - b), [0, 1]);
+  assert.deepEqual(second.state().batchInputs[0], ["chunk-1"]);
 });
 test("T16: interrupted batch retains complete hashes and removes incomplete hashes only", async () => {
   const fixture = storeFixture({ separate: true }), result = await fixture.run();

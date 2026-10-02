@@ -21,7 +21,7 @@ The behavioral fixtures execute the maintained scheduler/lifecycle and actual pa
 | T13 | Zero-error incomplete deadline, preserved debt and later successful tick |
 | T14 | Same signal and original timer across two collections |
 | T15 | Sequential/parallel in-flight native calls, aligned results and held claim |
-| T16 | Model/context/tokenization/preparation abort; incomplete vectors removed, complete hashes retained |
+| T16 | Model/context/tokenization/preparation abort; manual/default incomplete vectors removed, complete hashes retained |
 | T17 | Execution/classifier/progress errors release the claim |
 | T18 | Query arrival between collections leaves recoverable debt |
 | T19 | Queued/running stop, timers cleared and real completion before close |
@@ -30,7 +30,14 @@ The behavioral fixtures execute the maintained scheduler/lifecycle and actual pa
 | T22 | Neutral docs/notes/history examples and fixtures; no deployment policy in scheduler |
 | T23 | Existing update-only refresh/lexical-only search container smoke |
 | T24 | Fail-closed upstream anchors, patched target syntax, executable SDK/session signal/default fixtures and canonical verifier |
+| AE-25 | Consecutive short scheduled runs rotate the first eligible collection |
+| AE-26 | Scheduled cooperative interruption retains completed chunk checkpoints |
+| AE-27 | Scheduler explicitly enables resumable incomplete-document handling |
+| AE-28 | A later resumable run skips already persisted chunk sequences |
+| AE-29 | Cooperative deadline cancellation is not classified as a model failure |
+| AE-30 | Vector search excludes incomplete checkpoint groups without reducing complete candidate capacity |
+| AE-31 | Two separate short runs make cumulative progress and complete one document |
 
-The tests live in `embedding-scheduler.test.mjs`, `maintenance-jobs.test.mjs`, `native-embedding-deadline.test.mjs`, `query-tracking.test.mjs` and `embedding-policy.test.mjs` under `tests/`. Image smokes live under `scripts/`.
+The tests live in `embedding-scheduler.test.mjs`, `maintenance-jobs.test.mjs`, `native-embedding-deadline.test.mjs`, `vector-search-completeness.test.mjs`, `query-tracking.test.mjs` and `embedding-policy.test.mjs` under `tests/`. Image smokes live under `scripts/`.
 
 Release publication separately verifies amd64/arm64 packaging, provenance/SBOM and immutable release identity. Production activation must establish external resource limits, one index writer, representative backlog recovery and query responsiveness. Already-started native evaluations may exceed the cooperative deadline; batch bytes are not a RAM ceiling.
