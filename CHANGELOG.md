@@ -2,6 +2,18 @@
 
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
+## [0.2.1] - 2026-10-02
+
+- Makes automatic embedding progress resumable across cooperative deadlines by retaining completed chunk checkpoints and skipping those exact model/fingerprint chunks on later scheduled runs.
+- Rotates the first eligible collection across admitted scheduled runs so a permanently backlogged earlier collection cannot starve later eligible collections.
+- Excludes incomplete checkpoint groups from vector-search results while preserving candidate capacity for complete documents.
+- Treats scheduler deadline cancellation as recoverable deadline debt instead of reporting synthetic no-vector/model failures; genuine embedding failures retain their existing handling.
+- Keeps the existing scheduler interval, runtime budget, resource bounds, collection policy, one-writer model and read-only source-mount expectations unchanged.
+
+The collection-rotation cursor is process-local and resets to configured order after process restart. Manual embedding retains atomic cleanup of interrupted incomplete documents.
+
+Security: no disclosed vulnerability was fixed in this release.
+
 ## [0.2.0] - 2026-10-01
 
 - Adds opt-in automatic embedding with policy/pending selection, sequential collections and a shared maintenance claim; busy/query checks skip without queued catch-up.

@@ -26,14 +26,38 @@ export function patchEmbeddingDeadline({ sdk, store, llm }) {
       "            for (const doc of batchDocs) {\n                if (!session.isValid) break;", "document preparation deadline");
     source = once(source, "                const chunks = await chunkDocumentByTokens(doc.body, undefined, undefined, undefined, doc.path, options?.chunkStrategy, session.signal);",
       "                const chunks = await chunkDocumentByTokens(doc.body, undefined, undefined, undefined, doc.path, options?.chunkStrategy, session.signal);\n                if (!session.isValid) break;", "post-preparation deadline");
+    source = once(source, "                for (let seq = 0; seq < chunks.length; seq++) {",
+      "                const existingSeqs = options?.resumeIncomplete ? new Set(withLazyContentVectorMigration(db, () => db.prepare(\"SELECT seq FROM content_vectors WHERE hash = ? AND model = ? AND embed_fingerprint = ?\").all(doc.hash, model, fingerprint)).map(row => row.seq)) : null;\n                for (let seq = 0; seq < chunks.length; seq++) {\n                    if (existingSeqs?.has(seq)) continue;", "resumable chunk admission");
     source = once(source, "            totalChunks += batchChunks.length;",
       "            if (!session.isValid) break;\n            totalChunks += batchChunks.length;", "prepared batch deadline");
+    source = once(source, "            const removedPartialChunks = removeIncompleteEmbeddings(db, expectedChunksByHash, model);",
+      "            const removedPartialChunks = options?.resumeIncomplete && options?.signal?.aborted ? 0 : removeIncompleteEmbeddings(db, expectedChunksByHash, model);", "resumable checkpoint cleanup");
+    source = once(source, "                    for (const chunk of remainingChunks)\n                        recordFailure(chunk, \"LLM session expired before embedding chunk\");",
+      "                    if (!options?.signal?.aborted) {\n                        for (const chunk of remainingChunks)\n                            recordFailure(chunk, \"LLM session expired before embedding chunk\");\n                    }", "deadline cancellation remaining chunks");
+    source = once(source, "                        else {\n                            recordFailure(chunk, \"batch embedding returned no vector\");\n                        }",
+      "                        else if (!options?.signal?.aborted) {\n                            recordFailure(chunk, \"batch embedding returned no vector\");\n                        }", "deadline cancellation null vectors");
+    source = once(source, "                    if (!session.isValid) {\n                        for (const chunk of chunkBatch)",
+      "                    if (!session.isValid) {\n                        if (!options?.signal?.aborted) {\n                            for (const chunk of chunkBatch)", "deadline cancellation batch exception open");
+    source = once(source, "                        batchChunkBytesProcessed += chunkBatch.reduce((sum, c) => sum + c.bytes, 0);",
+      "                        }\n                        batchChunkBytesProcessed += chunkBatch.reduce((sum, c) => sum + c.bytes, 0);", "deadline cancellation batch exception close");
     source = once(source, "                const firstResult = await session.embed(firstText, { model });",
       "                const firstResult = await session.embed(firstText, { model });\n                if (!session.isValid) break;", "dimension setup deadline");
     source = once(source, "                        for (const chunk of chunkBatch) {\n                            await tryEmbedChunk(chunk);",
       "                        for (const chunk of chunkBatch) {\n                            if (!session.isValid) break;\n                            await tryEmbedChunk(chunk);", "fallback deadline");
     return source;
   }, "embedding document loop");
+
+  store = region(store, "export async function searchVec(", "// =============================================================================\n// Embeddings", source => {
+    source = once(source, "    // Step 1: Get vector matches from sqlite-vec (no JOINs allowed)",
+      "    const incompleteChunkCount = withLazyContentVectorMigration(db, () => db.prepare(\"SELECT COALESCE(SUM(chunk_count), 0) AS count FROM (SELECT COUNT(*) AS chunk_count FROM content_vectors GROUP BY hash HAVING COUNT(*) < MAX(total_chunks))\").get()?.count ?? 0);\n    // Step 1: Get vector matches from sqlite-vec (no JOINs allowed)", "vector search incomplete checkpoint count");
+    const vecCall = "  `).all(new Float32Array(embedding), limit * 3);";
+    source = once(source, vecCall,
+      "  `).all(new Float32Array(embedding), limit * 3 + incompleteChunkCount);", "vector search checkpoint overfetch");
+    const placeholderClause = "    WHERE cv.hash || '_' || cv.seq IN (${placeholders})";
+    source = once(source, placeholderClause,
+      placeholderClause + "\n      AND cv.hash IN (SELECT hash FROM content_vectors GROUP BY hash HAVING COUNT(*) = MAX(total_chunks))", "vector search complete hash guard");
+    return source;
+  }, "vector search checkpoint completeness");
 
   store = region(store, "export async function chunkDocumentByTokens(", "// =============================================================================\n// Fuzzy matching", source => {
     source = once(source, "    const llm = getDefaultLlamaCpp();",

@@ -19,7 +19,7 @@ Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
 Release images are published on GitHub Container Registry (GHCR):
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.2.0
+ghcr.io/x1pher/qmd-mcp:v0.2.1
 ```
 
 Published packages are public, so Docker does not need a GitHub login to pull an accepted release.
@@ -72,7 +72,7 @@ collections:
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp:v0.2.0
+    image: ghcr.io/x1pher/qmd-mcp:v0.2.1
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -142,7 +142,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp:v0.2.0
+  ghcr.io/x1pher/qmd-mcp:v0.2.1
 ```
 
 ## What QMD MCP provides
@@ -202,13 +202,13 @@ Invalid bounded numeric values fail at startup instead of being silently accepte
 
 Automatic embedding is disabled by default. Set a positive `QMD_EMBED_INTERVAL_MINUTES` to enable periodic checks after `QMD_EMBED_INITIAL_DELAY_SECONDS`.
 
-Each check selects pending work using the effective collection `embedding` policy. Missing `embedding` means enabled; default search selection and `QMD_DEFAULT_COLLECTION` do not limit the scheduler. One `scheduled_embed` job processes collections sequentially under the same maintenance claim as manual jobs and refresh. Busy or active-query checks skip without queuing work. Policy and pending work are rechecked before each collection.
+Each check selects pending work using the effective collection `embedding` policy. Missing `embedding` means enabled; default search selection and `QMD_DEFAULT_COLLECTION` do not limit the scheduler. One `scheduled_embed` job processes eligible collections sequentially under the same maintenance claim as manual jobs and refresh. Across admitted checks, the first eligible collection rotates in process memory so one collection cannot consume every shared deadline indefinitely. Busy or active-query checks skip without queuing work. Policy and pending work are rechecked before each collection.
 
-Partial or failed collections retain committed vectors and leave unfinished work eligible for a later check. Results preserve per-collection outcomes and current aggregate pending work. Successful/no-op/skipped checks are quiet; incomplete runs log a compact summary without document content.
+Scheduled embedding is resumable across cooperative deadlines. Successfully embedded chunks of an unfinished document are retained as internal checkpoints for the exact model/fingerprint, remain pending until the full document is complete, and are skipped on the next scheduled attempt. Incomplete checkpoint groups are excluded from vector-search results. Manual embedding keeps the previous atomic cleanup behavior for an interrupted incomplete document. Results preserve per-collection outcomes and current aggregate pending work. Cooperative deadline cancellation is reported as deadline debt rather than a model failure; genuine embedding failures keep their existing error handling. Successful/no-op/skipped checks are quiet; incomplete runs log a compact summary without document content.
 
 MCP `health` and HTTP `/health` expose `scheduledEmbedding` enablement, interval, initial delay, last outcome, next planned check and reused embedding bounds. State is process-local and resets on restart. The next check is a plan, not a promised job start. `scheduledRefresh.embeddingAutomatic: false` describes refresh only: refresh remains update-only.
 
-The scheduler uses one shared cooperative time budget. Its optional AbortSignal is forwarded through the pinned SDK, embedding session and native loops. After observing abort, no new document preparation, retry or native evaluation starts. Already-started native calls are awaited, including parallel workers, and incomplete document vectors are removed so later checks can retry them. Shutdown clears scheduler timers and waits for actual maintenance completion before closing the store. A cooperative deadline cannot hard-limit an in-flight native call's wall-clock duration. Manual embedding retains its per-collection session duration; the absent duration default is 3600000 ms.
+The scheduler uses one shared cooperative time budget. Its optional AbortSignal is forwarded through the pinned SDK, embedding session and native loops. After observing abort, no new document preparation, retry or native evaluation starts. Already-started native calls are awaited, including parallel workers. Completed scheduled chunks are checkpointed for later resume instead of being recomputed; an incomplete checkpoint group is not search-visible until all expected chunks exist. Shutdown clears scheduler timers and waits for actual maintenance completion before closing the store. A cooperative deadline cannot hard-limit an in-flight native call's wall-clock duration. Manual embedding retains its per-collection session duration and atomic incomplete-document cleanup; the absent duration default is 3600000 ms.
 
 Use one server writer per index; other replicas or direct CLI writers are outside the process-local claim. Batch bytes are a packing target, not a RAM ceiling. Deployments must supply appropriate CPU/RAM/swap limits and embedding parallelism. Query deferral applies at admission and between collections; queries arriving during a collection keep the existing behavior.
 
