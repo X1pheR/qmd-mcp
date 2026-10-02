@@ -19,7 +19,7 @@ Release changes are recorded in [`CHANGELOG.md`](CHANGELOG.md).
 Release images are published on GitHub Container Registry (GHCR):
 
 ```text
-ghcr.io/x1pher/qmd-mcp:v0.2.1
+ghcr.io/x1pher/qmd-mcp:v0.2.2
 ```
 
 Published packages are public, so Docker does not need a GitHub login to pull an accepted release.
@@ -72,7 +72,7 @@ collections:
 ```yaml
 services:
   qmd-mcp:
-    image: ghcr.io/x1pher/qmd-mcp:v0.2.1
+    image: ghcr.io/x1pher/qmd-mcp:v0.2.2
     container_name: qmd-mcp
     environment:
       QMD_FORCE_CPU: "1"
@@ -142,7 +142,7 @@ docker run -d \
   -v "$PWD/content:/vault:ro" \
   -v "$PWD/config:/config:ro" \
   -v qmd-data:/data \
-  ghcr.io/x1pher/qmd-mcp:v0.2.1
+  ghcr.io/x1pher/qmd-mcp:v0.2.2
 ```
 
 ## What QMD MCP provides

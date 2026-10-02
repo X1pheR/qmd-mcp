@@ -9,7 +9,7 @@ function region(source, start, end, transform, label) {
   return source.slice(0, a) + transform(source.slice(a, b)) + source.slice(b);
 }
 export function patchEmbeddingDeadline({ sdk, store, llm }) {
-  sdk = once(sdk, "                onProgress: embedOpts?.onProgress,", "                onProgress: embedOpts?.onProgress,\n                signal: embedOpts?.signal,", "SDK embed signal");
+  sdk = once(sdk, "                onProgress: embedOpts?.onProgress,", "                onProgress: embedOpts?.onProgress,\n                signal: embedOpts?.signal,\n                resumeIncomplete: embedOpts?.resumeIncomplete,", "SDK embed scheduler options");
 
   store = once(store, "export async function generateEmbeddings(store, options) {",
     "export async function generateEmbeddings(store, options) {\n    options?.signal?.throwIfAborted();", "embedding pre-abort");

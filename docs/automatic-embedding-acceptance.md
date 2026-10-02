@@ -37,6 +37,7 @@ The behavioral fixtures execute the maintained scheduler/lifecycle and actual pa
 | AE-29 | Cooperative deadline cancellation is not classified as a model failure |
 | AE-30 | Vector search excludes incomplete checkpoint groups without reducing complete candidate capacity |
 | AE-31 | Two separate short runs make cumulative progress and complete one document |
+| AE-32 | Patched `store.embed` forwards both `signal` and `resumeIncomplete` to `generateEmbeddings` |
 
 The tests live in `embedding-scheduler.test.mjs`, `maintenance-jobs.test.mjs`, `native-embedding-deadline.test.mjs`, `vector-search-completeness.test.mjs`, `query-tracking.test.mjs` and `embedding-policy.test.mjs` under `tests/`. Image smokes live under `scripts/`.
 
