@@ -70,12 +70,13 @@ test("T16: tokenization abort returns no partial document chunk list", async () 
   assert.equal((await chunk("ab", 100, 0, 0, "docs.md", "auto", controller.signal)).length, 0);
   assert.equal(tokenizations, 1);
 });
-test("T24: SDK embed forwards the exact optional signal", async () => {
+test("T24/AE-32: SDK embed forwards scheduler signal and resumeIncomplete options", async () => {
   let received;
   const body = between(sdkSource, "        embed: async (embedOpts) => {", "        // Index Health").trim().replace(/,$/, "");
-  const embed = vm.runInNewContext("({" + body + "}).embed", { internal: {}, generateEmbeddings: async (_store, options) => { received = options.signal; } });
-  const controller = new AbortController(); await embed({ signal: controller.signal });
-  assert.equal(received, controller.signal);
+  const embed = vm.runInNewContext("({" + body + "}).embed", { internal: {}, generateEmbeddings: async (_store, options) => { received = options; } });
+  const controller = new AbortController(); await embed({ signal: controller.signal, resumeIncomplete: true });
+  assert.equal(received.signal, controller.signal);
+  assert.equal(received.resumeIncomplete, true);
 });
 function sessionClass() {
   return vm.runInNewContext(between(llmSource, "class LLMSession {", "// Session manager for the default") + "; LLMSession",

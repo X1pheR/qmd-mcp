@@ -2,6 +2,14 @@
 
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
+## [0.2.2] - 2026-10-02
+
+- Fixes the SDK/store adapter so scheduled `resumeIncomplete` is forwarded end-to-end into `generateEmbeddings`; v0.2.1 set the option in the scheduler but dropped it in `store.embed`.
+- Adds an executable adapter-boundary regression proving both the shared cancellation signal and resumable-checkpoint option reach the embedding implementation together.
+- Keeps the v0.2.1 checkpoint, collection-rotation, cancellation-classification and vector-search isolation behavior otherwise unchanged.
+
+Security: no disclosed vulnerability was fixed in this release.
+
 ## [0.2.1] - 2026-10-02
 
 - Makes automatic embedding progress resumable across cooperative deadlines by retaining completed chunk checkpoints and skipping those exact model/fingerprint chunks on later scheduled runs.
