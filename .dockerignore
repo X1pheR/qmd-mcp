@@ -8,6 +8,7 @@
 !maintenance-jobs.mjs
 !embedding-scheduler.mjs
 !runtime-config.mjs
+!storage-admission.mjs
 !embedding-policy.mjs
 !http-policy.mjs
 !tests/

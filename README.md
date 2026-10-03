@@ -253,3 +253,11 @@ Normal CI does not publish images or releases. Release tags are immutable and ar
 ## License
 
 QMD MCP's original wrapper code is MIT licensed. QMD and bundled dependencies retain their own licenses. See [`LICENSE`](LICENSE) and [`UPSTREAM.md`](UPSTREAM.md).
+
+## Storage-aware maintenance admission
+
+All maintenance shares the existing single-job owner and now checks local full I/O and memory PSI avg10 before starting. Defaults defer at 5% and wait five minutes after pressure; this is workload admission, not an alert-threshold change. Read/query service remains available. Scheduled embedding checks again between collections and preserves committed progress. Refresh yields to active queries. A one-minute quiet period separates jobs; partial/failed work backs off per kind for 30, 60 then at most120 minutes, so embedding debt does not starve ordinary refresh forever. Restart uses the existing initial startup delays.
+
+`health.storageAdmission` exposes the last decision and cooldowns. `QMD_IO_PSI_FULL_AVG10_MAX` and `QMD_MEMORY_PSI_FULL_AVG10_MAX` configure bounded integer thresholds. Missing/malformed PSI defers rather than silently accepting work. An optional `QMD_STORAGE_THROTTLE_FILE` is a deployment-owned read-only atomic JSON cache: `schemaVersion:1`, ISO8601 `observedAt`, nonnegative numeric `throttledIOs`. Any positive throttling defers; a configured missing/stale/malformed cache also defers. Default maximum age is10 minutes (`QMD_STORAGE_THROTTLE_MAX_AGE_MS`). No cloud credentials, API client, network request or producer is added to QMD; operators own sampling/delivery and must not configure the cache before its producer is accepted. Unconfigured cloud coverage is explicit in health. Normal15-minute refresh and30-minute embedding cadence remains deployment-owned.
+
+`QMD_PRESSURE_ROOT` may select an operator-owned absolute read-only directory containing `io` and `memory` PSI files; default `/proc/pressure`. Integration tests mount deterministic healthy/degraded fixtures outside `/proc`, preserving Docker proc-safety confinement. Production uses the real kernel pressure interface.

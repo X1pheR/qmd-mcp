@@ -1,5 +1,5 @@
 ARG NODE_IMAGE=node:22.23.2-bookworm-slim@sha256:83f487e0a63425e5b4d146fb5e5be574bcbe1b7b843d3ebafdd95eaf7767a7e5
-ARG VERSION=0.2.2
+ARG VERSION=0.3.0
 ARG REVISION=unknown
 FROM ${NODE_IMAGE} AS build
 ARG TARGETARCH
@@ -15,7 +15,7 @@ RUN if [ "${TARGETARCH}" = "arm64" ]; then \
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
-COPY patch-qmd-bind.mjs patch-embedding-deadline.mjs admin-server.mjs maintenance-jobs.mjs embedding-scheduler.mjs runtime-config.mjs embedding-policy.mjs http-policy.mjs ./
+COPY patch-qmd-bind.mjs patch-embedding-deadline.mjs admin-server.mjs maintenance-jobs.mjs embedding-scheduler.mjs runtime-config.mjs storage-admission.mjs embedding-policy.mjs http-policy.mjs ./
 COPY tests ./tests
 RUN node ./patch-qmd-bind.mjs \
     && npm test \

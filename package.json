@@ -1,6 +1,6 @@
 {
   "name": "qmd-mcp",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Unified QMD read and bounded administration MCP server",
   "private": true,
   "type": "module",

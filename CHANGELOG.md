@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0]
+
+- Defer maintenance under local I/O or memory pressure; expose admission decisions.
+- Accept an optional fresh, sanitized cloud-throttling cache without per-tick API requests.
+- Separate refresh and embedding with a quiet period and bounded per-kind backoff after partial/failed work.
+- Stop scheduled embedding between collections when storage pressure appears.
+
+
 All notable changes to QMD MCP are documented here. Versions follow Semantic Versioning.
 
 ## [0.2.2] - 2026-10-02

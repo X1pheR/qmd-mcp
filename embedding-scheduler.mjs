@@ -1,3 +1,4 @@
+import { StorageDeferredError } from "./storage-admission.mjs";
 import { performance } from "node:perf_hooks";
 import { collectionEmbeddingEnabled, embeddingEnabledCollectionNames } from "./embedding-policy.mjs";
 
@@ -10,7 +11,7 @@ export function createEmbeddingScheduler({
   intervalMinutes, initialDelaySeconds, maxDurationMs, maxDocsPerBatch, maxBatchMb,
   maintenance, getConfig, pending, activeQueries, embed,
   clock = systemClock, sanitizeError, warn = message => console.error(message),
-  parallelism = null,
+  parallelism = null, storage = null,
 }) {
   let initialTimer = null, intervalTimer = null, next = null, last = null;
   let started = false, stopped = false, runController = null, activeDeadlineTimer = null;
@@ -37,7 +38,8 @@ export function createEmbeddingScheduler({
     const result = { embeddings: [], collectionErrors: [], needsEmbedding: null, chunksEmbedded: 0, completedCollections: 0 };
     const stopReason = () => stopped || maintenanceSignal.aborted ? "shutdown"
       : controller.signal.aborted || clock.monotonic() >= deadline ? "deadline"
-      : activeQueries() > 0 ? "querying" : null;
+      : activeQueries() > 0 ? "querying"
+      : storage && !storage.check("scheduled_embed", { running: true }).allowed ? "storage_pressure" : null;
     try {
       for (const [index, collection] of selected.entries()) {
         const reason = stopReason();
@@ -110,6 +112,9 @@ export function createEmbeddingScheduler({
       });
       return job;
     } catch (error) {
+      if (error instanceof StorageDeferredError) {
+        last = { attemptedAt, state: "deferred_storage", ...error.decision }; return null;
+      }
       last = { attemptedAt, state: "failed_to_start", error: sanitizeError(error) };
       warn("QMD scheduled embedding failed to start; inspect scheduler health.");
       return null;

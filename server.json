@@ -9,11 +9,11 @@
     "source": "github",
     "id": "1333668707"
   },
-  "version": "0.2.2",
+  "version": "0.3.0",
   "packages": [
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/x1pher/qmd-mcp:v0.2.2",
+      "identifier": "ghcr.io/x1pher/qmd-mcp:v0.3.0",
       "runtimeHint": "docker",
       "runtimeArguments": [
         {

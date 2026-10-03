@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p .ci-scheduler/config .ci-scheduler/vault/logs
+# Isolated PSI fixtures make admission tests independent of the CI host load.
+printf '%s\n' 'full avg10=0.00 avg60=0.00 avg300=0.00 total=0' > .ci-scheduler/config/io-pressure
+printf '%s\n' 'full avg10=0.00 avg60=0.00 avg300=0.00 total=0' > .ci-scheduler/config/memory-pressure
 printf '%s\n' \
   'global_context: CI scheduler update-only smoke.' \
   'collections:' \
@@ -20,10 +23,13 @@ printf '%s\n' '# Append-only history' 'qmd-scheduler-lexical-marker' > .ci-sched
 
 docker run -d --name qmd-mcp-scheduler-ci \
   -p 127.0.0.1:18182:8181 \
+  -e QMD_PRESSURE_ROOT=/pressure \
   -e QMD_FORCE_CPU=1 \
   -e QMD_SOURCE_RELATIVE_ROOT=/vault \
   -e QMD_REFRESH_INTERVAL_MINUTES=1 \
   -e QMD_REFRESH_INITIAL_DELAY_SECONDS=1 \
+  -v "$PWD/.ci-scheduler/config/io-pressure:/pressure/io:ro" \
+  -v "$PWD/.ci-scheduler/config/memory-pressure:/pressure/memory:ro" \
   -v "$PWD/.ci-scheduler/config:/config:ro" \
   -v "$PWD/.ci-scheduler/vault:/vault:ro" \
   qmd-mcp:ci
