@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p .ci-embedding/config .ci-embedding/vault
+# Isolated PSI fixtures make admission tests independent of the CI host load.
+printf '%s\n' 'full avg10=0.00 avg60=0.00 avg300=0.00 total=0' > .ci-embedding/config/io-pressure
+printf '%s\n' 'full avg10=0.00 avg60=0.00 avg300=0.00 total=0' > .ci-embedding/config/memory-pressure
 printf '%s\n' 'collections:' '  docs:' '    path: /vault' '    pattern: "**/*.md"' '    embedding: false' > .ci-embedding/config/index.yml
 cleanup(){ docker rm -f qmd-mcp-embedding-ci >/dev/null 2>&1 || true; rm -rf .ci-embedding; }
 trap cleanup EXIT
 docker run -d --name qmd-mcp-embedding-ci --label qmd.purpose=embedding-smoke \
-  -p 127.0.0.1:18183:8181 -e QMD_FORCE_CPU=1 -e QMD_REFRESH_INTERVAL_MINUTES=0 \
+  -p 127.0.0.1:18183:8181 -e QMD_PRESSURE_ROOT=/pressure -e QMD_FORCE_CPU=1 -e QMD_REFRESH_INTERVAL_MINUTES=0 \
   -e QMD_EMBED_INTERVAL_MINUTES=1 -e QMD_EMBED_INITIAL_DELAY_SECONDS=1 \
+  -v "$PWD/.ci-embedding/config/io-pressure:/pressure/io:ro" \
+  -v "$PWD/.ci-embedding/config/memory-pressure:/pressure/memory:ro" \
   -v "$PWD/.ci-embedding/config:/config:ro" -v "$PWD/.ci-embedding/vault:/vault:ro" qmd-mcp:ci
 python3 - <<'PY'
 import json,time,urllib.request

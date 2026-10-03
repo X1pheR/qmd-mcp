@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 mkdir -p .ci-smoke/config .ci-smoke/vault/_meta .ci-smoke/vault/logs
+# Isolated PSI fixtures make admission tests independent of the CI host load.
+printf '%s\n' 'full avg10=0.00 avg60=0.00 avg300=0.00 total=0' > .ci-smoke/config/io-pressure
+printf '%s\n' 'full avg10=0.00 avg60=0.00 avg300=0.00 total=0' > .ci-smoke/config/memory-pressure
 printf '%s\n' \
   'global_context: CI smoke knowledge base.' \
   'collections:' \
@@ -21,9 +24,12 @@ printf '%s\n' '# Append-only history' 'qmd-lexical-only-marker' > .ci-smoke/vaul
 
 docker run -d --name qmd-mcp-ci \
   -p 127.0.0.1:18181:8181 \
+  -e QMD_PRESSURE_ROOT=/pressure \
   -e QMD_FORCE_CPU=1 \
   -e QMD_SOURCE_RELATIVE_ROOT=/vault \
   -e QMD_REFRESH_INTERVAL_MINUTES=0 \
+  -v "$PWD/.ci-smoke/config/io-pressure:/pressure/io:ro" \
+  -v "$PWD/.ci-smoke/config/memory-pressure:/pressure/memory:ro" \
   -v "$PWD/.ci-smoke/config:/config:ro" \
   -v "$PWD/.ci-smoke/vault:/vault:ro" \
   qmd-mcp:ci
@@ -320,4 +326,13 @@ with urllib.request.urlopen(base + "/health", timeout=2) as response:
     health = json.load(response)
 assert health["documents"] == 4, health
 assert health["needsEmbedding"] == 3, health
+from pathlib import Path
+Path(".ci-smoke/config/io-pressure").write_text("full avg10=12.00 avg60=0.00 avg300=0.00 total=0\n")
+_, deferred = post({"jsonrpc":"2.0", "id":90, "method":"tools/call", "params":{"name":"start_update", "arguments":{"collections":["docs"]}}}, session)
+assert deferred["result"].get("isError") is True, deferred
+assert "io_pressure" in deferred["result"]["content"][0]["text"], deferred
+_, admission = post({"jsonrpc":"2.0", "id":91, "method":"tools/call", "params":{"name":"health", "arguments":{}}}, session)
+assert admission["result"]["structuredContent"]["storageAdmission"]["last"]["reason"] == "io_pressure", admission
+with urllib.request.urlopen(base + "/health", timeout=2) as response:
+    assert json.load(response)["status"] == "ok"
 PY

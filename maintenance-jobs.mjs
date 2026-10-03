@@ -21,6 +21,7 @@ function resultErrorCount(result) {
 
 export function createMaintenanceJobs({
   maxRetainedJobs = 20,
+  admit = () => {}, finished = () => {},
   now = () => new Date().toISOString(),
   markActivity = () => {},
   sanitizeError = error => (error instanceof Error ? error.message : String(error)).slice(0, 1000),
@@ -44,6 +45,7 @@ export function createMaintenanceJobs({
       const active = jobs.get(activeJobId);
       throw new Error(`Job already active: ${active.id} (${active.type})`);
     }
+    admit(type);
     const job = {
       id: randomUUID(), type, state: "queued", createdAt: now(),
       startedAt: null, finishedAt: null, parameters, progress: null, result: null, error: null,
@@ -78,6 +80,7 @@ export function createMaintenanceJobs({
           completion = null;
         }
         try {
+          finished(job);
           markActivity();
           pruneJobs();
         } finally {

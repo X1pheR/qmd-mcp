@@ -1,3 +1,4 @@
+import { createStorageAdmission, StorageDeferredError } from "./storage-admission.mjs";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { createEmbeddingScheduler } from "./embedding-scheduler.mjs";
@@ -41,6 +42,7 @@ const publicJobOutputSchema = z.object({
 });
 
 const healthOutputSchema = {
+  storageAdmission: z.unknown(),
   status: z.unknown(),
   indexHealth: z.unknown(),
   state: z.enum(["maintenance", "querying", "idle"]),
@@ -135,7 +137,17 @@ const readStore = {
 embeddingConfig();
 
 const sessions = new Map();
-const maintenance = createMaintenanceJobs({ maxRetainedJobs, now, markActivity, sanitizeError });
+const pressureRoot = process.env.QMD_PRESSURE_ROOT || "/proc/pressure";
+if (!pressureRoot.startsWith("/") || pressureRoot.includes("\0")) throw new Error("QMD_PRESSURE_ROOT must be an absolute local directory");
+const storageAdmission = createStorageAdmission({
+  ioPath: pressureRoot + "/io", memoryPath: pressureRoot + "/memory",
+  ioMax: readBoundedInteger("QMD_IO_PSI_FULL_AVG10_MAX", 5, 1, 100),
+  memoryMax: readBoundedInteger("QMD_MEMORY_PSI_FULL_AVG10_MAX", 5, 1, 100),
+  throttlePath: process.env.QMD_STORAGE_THROTTLE_FILE || null,
+  throttleMaxAgeMs: readBoundedInteger("QMD_STORAGE_THROTTLE_MAX_AGE_MS", 600000, 60000, 3600000),
+});
+const maintenance = createMaintenanceJobs({ maxRetainedJobs, now, markActivity, sanitizeError,
+  admit: storageAdmission.admit, finished: storageAdmission.finished });
 const { jobs, startJob } = maintenance;
 let activeQueries = 0;
 let lastActivityAt = null;
@@ -147,7 +159,7 @@ const startedAt = Date.now();
 const embeddingSchedule = createEmbeddingScheduler({
   intervalMinutes: embedIntervalMinutes, initialDelaySeconds: embedInitialDelaySeconds,
   maxDurationMs: embedMaxDurationMs, maxDocsPerBatch: defaultEmbedMaxDocsPerBatch,
-  maxBatchMb: defaultEmbedMaxBatchMb, maintenance,
+  maxBatchMb: defaultEmbedMaxBatchMb, maintenance, storage: storageAdmission,
   getConfig: embeddingConfig, pending: effectiveNeedsEmbedding,
   activeQueries: () => activeQueries, embed: options => store.embed(options), sanitizeError,
   parallelism: process.env.QMD_EMBED_PARALLELISM ? "configured" : "automatic",
@@ -229,10 +241,13 @@ async function scheduledRefreshTick() {
       lastScheduledRefresh = { attemptedAt, state: "skipped_busy", jobId: maintenance.activeJobId };
       return;
     }
+    if (activeQueries > 0) { lastScheduledRefresh = { attemptedAt, state: "skipped_querying" }; return; }
     const job = await startScheduledRefresh();
     lastScheduledRefresh = { attemptedAt, state: "started", jobId: job.id };
   } catch (error) {
-    lastScheduledRefresh = { attemptedAt, state: "failed_to_start", error: sanitizeError(error) };
+    lastScheduledRefresh = error instanceof StorageDeferredError
+      ? { attemptedAt, state: "deferred_storage", ...error.decision }
+      : { attemptedAt, state: "failed_to_start", error: sanitizeError(error) };
   }
 }
 
@@ -274,6 +289,7 @@ async function createMcpServer() {
       const [status, indexHealth] = await Promise.all([effectiveStatus(), effectiveIndexHealth()]);
       const payload = {
         status,
+        storageAdmission: storageAdmission.health(),
         indexHealth,
         state: runtimeState(),
         activeQueries,
@@ -453,6 +469,7 @@ const httpServer = createServer(async (nodeRequest, nodeResponse) => {
         lastActivityAt,
         nextScheduledRefreshAt,
         scheduledEmbedding: embeddingSchedule.health(),
+        storageAdmission: storageAdmission.health(),
         scheduledRefreshEnabled: refreshIntervalMinutes > 0,
         refreshIntervalMinutes,
       }));
