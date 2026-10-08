@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "name": "QMD MCP",
+  "category": "Knowledge",
+  "kind": "mcp-server",
+  "upstream": {
+    "repository": "tobi/qmd",
+    "reason": "Packages QMD as a maintained MCP service with bounded administration and fail-closed compatibility behavior required by Hypershell."
+  }
+}
