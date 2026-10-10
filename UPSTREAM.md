@@ -115,6 +115,20 @@ Both source contributions are unmerged and not proven released.
 The pinned QMD 2.5.3 downstream build still retains exact-match
 patches and runtime behavior; no upgrade or release is authorized.
 
+## Upstream HTTP health counters
+
+The generic health-counter behavior was split from the preliminary
+QM-P04 source-path cache behavior into QM-P10. Existing QMD HTTP
+/health response at upstream main 93d211f9ef4a869a9aed0d075ca767dda552627f
+returns only status/uptime; upstream
+[issue #1058](https://github.com/tobi/qmd/issues/1058) and draft
+[PR #1059](https://github.com/tobi/qmd/pull/1059),
+head 1388035732c0240a04cef4000818f45953ee696e,
+add document and needsEmbedding counters from the canonical store status,
+plus explicit upstream test assertions. Maintainer review and full
+upstream CI are still pending; no QMD downstream release or production
+deployment changed.
+
 ## Machine-readable downstream patch register
 
 This inline register is the product-owned logical-patch projection used by SDLC-09 structural verification. Its state does not replace current GitHub issue/PR verification, an actual upstream-compatible tested diff, or any required operator-approved product ADR. Unlinked rows are explicitly nonconformant; no historical fork behavior has been grandfathered. Cross-product integration and release actions remain gated separately. Patch scope and local commit mappings require further semantic review before external contribution.
@@ -165,7 +179,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
     {
       "id": "QM-P04",
       "kind": "upstream",
-      "scope": "Upstream diagnostic health and source-cache invalidation",
+      "scope": "QMD source-path cache reconciliation and invalidation in maintained wrapper",
       "local_commits": [
         "45efce0",
         "5770753"
@@ -234,6 +248,18 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "checked_on": "2026-10-10",
       "issue": "https://github.com/tobi/qmd/issues/1056",
       "pr": "https://github.com/tobi/qmd/pull/1057",
+      "pr_state": "draft"
+    },
+    {
+      "id": "QM-P10",
+      "kind": "upstream",
+      "scope": "HTTP /health includes document and pending-embedding status counters",
+      "local_commits": [
+        "45efce0"
+      ],
+      "checked_on": "2026-10-10",
+      "issue": "https://github.com/tobi/qmd/issues/1058",
+      "pr": "https://github.com/tobi/qmd/pull/1059",
       "pr_state": "draft"
     }
   ]
