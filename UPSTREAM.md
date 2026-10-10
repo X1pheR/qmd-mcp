@@ -47,6 +47,25 @@ A passing dependency-resolution step alone is not sufficient for a QMD upgrade.
 
 Generic fixes that belong in QMD itself should be proposed upstream when practical. QMD MCP should retain only behavior that is intentionally part of this product boundary or compatibility patches needed until an accepted upstream release contains the fix.
 
+## Upstream release already contains QM-P07 fix
+
+The upstream doctor model-cache sidecar diagnostic was fixed
+by [issue #812](https://github.com/tobi/qmd/issues/812) and
+[merged PR #829](https://github.com/tobi/qmd/pull/829)
+on 2026-08-12 (head e4c864d09dc86a2442d132f2110c3da9d7f7c512).
+The upstream [v2.8.3 release](https://github.com/tobi/qmd/releases/tag/v2.8.3),
+published 2026-08-16, explicitly identifies the etag false-positive
+correction in its release notes. This reuses upstream evidence
+instead of submitting a duplicate feature/fix.
+
+The downstream still pins QMD 2.5.3, so the existing exact-match
+doctor sidecar patch remains required by that old runtime.
+PR merged and release included are NOT evidence that the downstream
+has adopted it. Remove this patch only as part of an accepted
+QMD dependency upgrade with full patched-source verifier and
+representative doctor behavior regression parity. Other pinned
+QMD patches may require rebaselining. No runtime update occurred.
+
 ## Existing upstream contribution: QM-P01
 
 Upstream issue [#743](https://github.com/tobi/qmd/issues/743)
@@ -161,8 +180,9 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "45efce0"
       ],
       "checked_on": "2026-10-10",
-      "issue": null,
-      "pr": null
+      "issue": "https://github.com/tobi/qmd/issues/812",
+      "pr": "https://github.com/tobi/qmd/pull/829",
+      "pr_state": "released"
     },
     {
       "id": "QM-P08",
