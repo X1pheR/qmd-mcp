@@ -129,6 +129,21 @@ plus explicit upstream test assertions. Maintainer review and full
 upstream CI are still pending; no QMD downstream release or production
 deployment changed.
 
+## Upstream embedding duration already shipped
+
+An upstream feature overlapping QM-P05 exists and must not receive
+a duplicate proposal. [Issue #673](https://github.com/tobi/qmd/issues/673)
+is served by [merged PR #708](https://github.com/tobi/qmd/pull/708),
+commit 962fa6e870c6404bdad73b89ca7aa5eb183bfc23:
+QMD exposes an embedding timeout override with validated options;
+the capability is included in the official
+[v2.8.3 release](https://github.com/tobi/qmd/releases/tag/v2.8.3).
+This has been split into QM-P11 so the remaining QM-P05 tracks only
+unresolved cooperative abort forwarding and incomplete-vector semantics.
+Our maintained QMD wrapper still pins 2.5.3 and has **not**
+adopted this upstream release; patch removal requires a separately
+accepted QMD upgrade and parity verification.
+
 ## Machine-readable downstream patch register
 
 This inline register is the product-owned logical-patch projection used by SDLC-09 structural verification. Its state does not replace current GitHub issue/PR verification, an actual upstream-compatible tested diff, or any required operator-approved product ADR. Unlinked rows are explicitly nonconformant; no historical fork behavior has been grandfathered. Cross-product integration and release actions remain gated separately. Patch scope and local commit mappings require further semantic review before external contribution.
@@ -191,7 +206,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
     {
       "id": "QM-P05",
       "kind": "upstream",
-      "scope": "Configurable embedding timeout, abort forwarding and cooperative deadlines",
+      "scope": "Abort forwarding, cooperative embedding deadlines and incomplete-vector resume behavior",
       "local_commits": [
         "e44b2f4",
         "d31e67e",
@@ -261,6 +276,18 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "issue": "https://github.com/tobi/qmd/issues/1058",
       "pr": "https://github.com/tobi/qmd/pull/1059",
       "pr_state": "draft"
+    },
+    {
+      "id": "QM-P11",
+      "kind": "upstream",
+      "scope": "Configurable bounded embedding session duration and timeout override",
+      "local_commits": [
+        "e44b2f4"
+      ],
+      "checked_on": "2026-10-10",
+      "issue": "https://github.com/tobi/qmd/issues/673",
+      "pr": "https://github.com/tobi/qmd/pull/708",
+      "pr_state": "merged"
     }
   ]
 }
