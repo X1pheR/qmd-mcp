@@ -47,6 +47,28 @@ A passing dependency-resolution step alone is not sufficient for a QMD upgrade.
 
 Generic fixes that belong in QMD itself should be proposed upstream when practical. QMD MCP should retain only behavior that is intentionally part of this product boundary or compatibility patches needed until an accepted upstream release contains the fix.
 
+## Existing upstream contribution: QM-P01
+
+Upstream issue [#743](https://github.com/tobi/qmd/issues/743)
+requests a configurable HTTP listen host. Existing open
+[PR #583](https://github.com/tobi/qmd/pull/583) implements
+CLI, environment and API host overrides and bind-aware logging.
+[Comment #6102054302](https://github.com/tobi/qmd/issues/743#issuecomment-6102054302)
+links the existing upstream issue and PR rather than opening
+duplicate contribution work. On 2026-10-10, PR head
+0f62acede19e32eb61dfeedee8f69478a24dde33 was open
+against upstream main and unmerged.
+
+The current downstream exact-match patch uses QMD_HTTP_HOST,
+while upstream PR #583 uses QMD_HOST with
+options.host > QMD_HOST > localhost precedence.
+Source behavior aligns but the environment contract differs.
+Before removing the downstream patch, require an immutable
+upstream release including the change, owner-approved config
+migration, representative HTTP/MCP bind tests, and tested
+removal of the now-redundant exact-match patch.
+An existing unmerged third-party PR is not adoption.
+
 ## Machine-readable downstream patch register
 
 This inline register is the product-owned logical-patch projection used by SDLC-09 structural verification. Its state does not replace current GitHub issue/PR verification, an actual upstream-compatible tested diff, or any required operator-approved product ADR. Unlinked rows are explicitly nonconformant; no historical fork behavior has been grandfathered. Cross-product integration and release actions remain gated separately. Patch scope and local commit mappings require further semantic review before external contribution.
@@ -66,8 +88,9 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "45efce0"
       ],
       "checked_on": "2026-10-10",
-      "issue": null,
-      "pr": null
+      "issue": "https://github.com/tobi/qmd/issues/743",
+      "pr": "https://github.com/tobi/qmd/pull/583",
+      "pr_state": "open"
     },
     {
       "id": "QM-P02",
