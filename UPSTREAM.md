@@ -88,6 +88,33 @@ migration, representative HTTP/MCP bind tests, and tested
 removal of the now-redundant exact-match patch.
 An existing unmerged third-party PR is not adoption.
 
+## Upstream text content and extensible factory submissions
+
+QMD upstream main at 93d211f9ef4a869a9aed0d075ca767dda552627f
+still returns embedded MCP resource content from get and multi_get
+by default. Existing upstream
+[issue #959](https://github.com/tobi/qmd/issues/959) has a compatibility
+report from a text-only client. Draft
+[PR #1055](https://github.com/tobi/qmd/pull/1055),
+head 55103fc20574966e24a3986ba31b797e2127d88a,
+implements portable text by default with separate explicit opt-in and
+user-approval confirmation before user-visible resource exposure.
+Dependency-free native Node assertions passed for the pure output
+policy; full upstream Bun/Node CI and acceptance remain pending.
+
+The separately maintained factory export was split from the preliminary
+QM-P02 query behavior and tracked as QM-P09. Upstream issue
+[#1056](https://github.com/tobi/qmd/issues/1056) and draft
+[PR #1057](https://github.com/tobi/qmd/pull/1057),
+head af752f5e974e435fec7bc3ac114781e7efb39ea8,
+export the existing createMcpServer factory without changing
+the default runtime. That one-line patch needs upstream API
+maintainer approval; full upstream CI was not run.
+
+Both source contributions are unmerged and not proven released.
+The pinned QMD 2.5.3 downstream build still retains exact-match
+patches and runtime behavior; no upgrade or release is authorized.
+
 ## Machine-readable downstream patch register
 
 This inline register is the product-owned logical-patch projection used by SDLC-09 structural verification. Its state does not replace current GitHub issue/PR verification, an actual upstream-compatible tested diff, or any required operator-approved product ADR. Unlinked rows are explicitly nonconformant; no historical fork behavior has been grandfathered. Cross-product integration and release actions remain gated separately. Patch scope and local commit mappings require further semantic review before external contribution.
@@ -114,7 +141,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
     {
       "id": "QM-P02",
       "kind": "upstream",
-      "scope": "Unified upstream factory export and bounded MCP query surfaces",
+      "scope": "Routine query without reranking, bounded query_reranked and unified query tool surface",
       "local_commits": [
         "45efce0",
         "0e9f4d7"
@@ -131,8 +158,9 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "ad5a596"
       ],
       "checked_on": "2026-10-10",
-      "issue": null,
-      "pr": null
+      "issue": "https://github.com/tobi/qmd/issues/959",
+      "pr": "https://github.com/tobi/qmd/pull/1055",
+      "pr_state": "draft"
     },
     {
       "id": "QM-P04",
@@ -195,6 +223,18 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "checked_on": "2026-10-10",
       "issue": null,
       "pr": null
+    },
+    {
+      "id": "QM-P09",
+      "kind": "upstream",
+      "scope": "Export upstream createMcpServer factory for integrated MCP wrapper extensions",
+      "local_commits": [
+        "45efce0"
+      ],
+      "checked_on": "2026-10-10",
+      "issue": "https://github.com/tobi/qmd/issues/1056",
+      "pr": "https://github.com/tobi/qmd/pull/1057",
+      "pr_state": "draft"
     }
   ]
 }
