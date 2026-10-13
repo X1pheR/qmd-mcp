@@ -201,7 +201,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "d5272ef"
       ],
       "checked_on": "2026-10-13",
-      "issue": null,
+      "issue": "https://github.com/tobi/qmd/issues/1064",
       "pr": null
     },
     {
@@ -319,3 +319,5 @@ The obsolete reverse-lookup cache, filesystem glob and invalidation machinery we
 PR #1055 text defaults (55103fc20574966e24a3986ba31b797e2127d88a), #1057 factory export (af752f5e974e435fec7bc3ac114781e7efb39ea8) and #1059 HTTP counters (1388035732c0240a04cef4000818f45953ee696e) remain open/unmerged and now pass exact-branch TypeScript/build,110affectedMCPtests under each Node22/Bun1.3.14 and canonical package smoke for grammar assets and both runtime CLI/wrappers. PR1055 adds two passing document-content regressions per runtime. Node21/Bun25establishedMCP/native skips remain explicit. Unchanged unrelated upstream93d211acceptance is reused rather than rerun. Evidence: `qmd-pr{1055,1057,1059}-acceptance.log`, successful combined run `run-20261013T231345288073Z-5c8f2ccc4a91`. Public PR descriptions now reflect these exact gates; no full greenBunCI or upstream adoption is claimed.
 
 PR1063 now includes native admission completion at exact head `3cd88481c00d84f1b8312fc1342a3fc9da9c6cc4`. Six new TDD regressions failed before implementation and pass after it: pre-abort, shared-setup caller isolation, preparation abort, sequential/parallel stable-position admission and session forwarding. Shared model setup does not inherit an individual caller signal; admitted evaluations are awaited. TypeScript and affected LLM/SDK/native suites pass140tests per runtime (Node37/Bun38native/model skips); canonical package smoke passes. Independent tracked+untracked diff review passed. Evidence: `qmd-native-1061-{red,green,package}.log`; publication `run-20261013T232124350701Z-8bce47f193b5` and official exact-head GitHub readback. Temporary dependency-link and wrong-source-branch attempts failed cleanly before publication; normal fast-forward integration onto the existing named contribution branch satisfied the unchanged publisher gates. QM-P05 now owns only the remaining partition-aware checkpoint/resume scope. No native preemption, partial-checkpoint support, downstream release or deployment is claimed.
+
+QM-P05 has focused upstream issue #1064 for opt-in resumable checkpoints. Current upstream uses collection-partitioned vectors; current metadata has no explicit chunk-content identity. Reusing sequence numbers alone cannot establish safe reuse after chunk-plan changes. The issue requests the preferred persisted chunk-identity contract, default cleanup preservation, incomplete-group exclusion by model/fingerprint across partitions and legacy migration acceptance. No checkpoint PR, new schema migration or accepted divergence is claimed.
