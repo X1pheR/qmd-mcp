@@ -206,13 +206,13 @@ This inline register is the product-owned logical-patch projection used by SDLC-
     {
       "id": "QM-P05",
       "kind": "upstream",
-      "scope": "Abort forwarding, cooperative embedding deadlines and incomplete-vector resume behavior",
+      "scope": "Native-call cancellation admission and retained incomplete-vector checkpoint/resume behavior",
       "local_commits": [
         "e44b2f4",
         "d31e67e",
         "d5272ef"
       ],
-      "checked_on": "2026-10-10",
+      "checked_on": "2026-10-13",
       "issue": null,
       "pr": null
     },
@@ -288,6 +288,21 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "issue": "https://github.com/tobi/qmd/issues/673",
       "pr": "https://github.com/tobi/qmd/pull/708",
       "pr_state": "merged"
+    },
+    {
+      "id": "QM-P12",
+      "kind": "upstream",
+      "scope": "SDK embedding AbortSignal forwarding, cooperative batch admission and abort listener cleanup",
+      "local_commits": [
+        "e44b2f4",
+        "d31e67e",
+        "d5272ef"
+      ],
+      "checked_on": "2026-10-13",
+      "issue": "https://github.com/tobi/qmd/issues/1061",
+      "pr": "https://github.com/tobi/qmd/pull/1063",
+      "pr_state": "draft",
+      "pr_head_sha": "73566417ff6603690d657898b30e4a3403e9ad7f"
     }
   ]
 }
@@ -296,3 +311,28 @@ This inline register is the product-owned logical-patch projection used by SDLC-
 ## Convergence lifecycle
 
 Verify existing upstream issues and PRs, current default-branch equivalence, and source-owned regression evidence before submitting missing contributions. A PR that is closed without merge is nonconformant, and a merged PR is not automatically present in an immutable official release. Remove a downstream patch only on a tested candidate against a suitable released upstream artifact. Retire the fork only after verified patch elimination, accepted distribution/ADR disposition, rollback readiness, consumer parity, and separate operator approval for production/retirement.
+
+
+## SDK embedding cancellation contribution — 2026-10-14
+
+QM-P12 is the SDK/batch cooperative-cancellation slice formerly grouped under
+QM-P05. Issue1061 and draft PR1063 are read-back verified at exact head
+73566417ff6603690d657898b30e4a3403e9ad7f against upstream
+93d211f9ef4a869a9aed0d075ca767dda552627f. An already-aborted force call does
+not clear vectors; later work is not admitted after abort; an in-flight batch
+is awaited; the caller reason is preserved and session listeners are removed.
+
+Four test-first regressions and independent diff review passed. The complete
+Node suite covers56files/1613declared tests; affected SDK82tests and the canonical
+package smoke pass under Node and Bun. Bun1.3.14 has1531observed passes,
+83skips and two SQLite hard-heap fixtures that also fail before the checked
+operation on the unchanged upstream source. HTTP fixtures pass in an IPv4-only
+disposable namespace. These local baseline findings are explicit in the draft
+PR; no fully green Bun CI, merge or release is claimed.
+
+Evidence is retained in the SDLC09 Reach Task and
+/srv/hypershell/reports/sdlc09-20261011/qmd-cancellation-1061-receipt.json.
+QM-P05 remains nonconformant: the contribution does not preempt native work
+already admitted inside a batch or retain partially complete document vectors
+for checkpoint resume. It does not change the pinned2.5.3 runtime or the
+product's own scheduler. No downstream release or deployment changed.
