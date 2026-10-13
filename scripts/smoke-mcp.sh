@@ -78,7 +78,7 @@ headers, initialized = post({
 })
 session = headers.get("mcp-session-id")
 assert session
-assert initialized["result"]["serverInfo"]["version"] == "2.5.3"
+assert initialized["result"]["serverInfo"]["version"] == "2.8.3"
 
 _, listed = post({"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}, session)
 tools = {tool["name"]: tool for tool in listed["result"]["tools"]}
@@ -166,12 +166,13 @@ _, queried = post({
 }, session)
 results = queried["result"]["structuredContent"]["results"]
 assert results, queried
-match = next(item for item in results if item["source_relative_path"] == "_meta/source_path.md")
+match = next((item for item in results if item["source_relative_path"] == "_meta/source_path.md"), None)
+assert match, queried
 assert match["collection"] == "docs"
-assert match["file"] == "docs/meta/source-path.md"
+assert match["file"] == "docs/_meta/source_path.md"
 
-# Prime the source-path cache above, then add a new source and require a successful
-# update to invalidate that cache immediately rather than waiting for the 60s TTL.
+# Add a new exact source path and require it to be available immediately after
+# a successful update; released path storage needs no reverse-lookup cache.
 from pathlib import Path
 Path(".ci-smoke/vault/delta.md").write_text("# Delta\nqmd-source-path-delta-marker\n", encoding="utf-8")
 _, delta_started = post({
@@ -268,7 +269,7 @@ _, internal_get = post({
     "method": "tools/call",
     "params": {
         "name": "get",
-        "arguments": {"file": "docs/meta/source-path.md", "lineNumbers": False},
+        "arguments": {"file": "docs/_meta/source_path.md", "lineNumbers": False},
     },
 }, session)
 assert internal_get["result"].get("isError") is not True, internal_get
@@ -281,7 +282,7 @@ _, unapproved_exposure = post({
     "params": {
         "name": "get",
         "arguments": {
-            "file": "docs/meta/source-path.md",
+            "file": "docs/_meta/source_path.md",
             "lineNumbers": False,
             "exposeToUser": True,
         },
@@ -297,7 +298,7 @@ _, approved_exposure = post({
     "params": {
         "name": "get",
         "arguments": {
-            "file": "docs/meta/source-path.md",
+            "file": "docs/_meta/source_path.md",
             "lineNumbers": False,
             "exposeToUser": True,
             "confirmUserApprovedExposure": True,
@@ -314,7 +315,7 @@ _, unapproved_multi_exposure = post({
     "params": {
         "name": "multi_get",
         "arguments": {
-            "pattern": "docs/meta/source-path.md",
+            "pattern": "docs/_meta/source_path.md",
             "lineNumbers": False,
             "exposeToUser": True,
         },

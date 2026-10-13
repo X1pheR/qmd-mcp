@@ -112,7 +112,7 @@ test("T16: abort after model resolution does not initiate native model loading",
 test("T16: abort during context creation permits in-flight setup but no next context", async () => {
   const controller = new AbortController(), held = deferred(); let creations = 0;
   const methods = between(llmSource, "    embedContextsCreatePromise = null;", "    async ensureGenerateModel(");
-  const Contexts = vm.runInNewContext("class Contexts {" + methods + "}; Contexts", { LlamaCpp: { EMBED_CONTEXT_SIZE: 100 } });
+  const Contexts = vm.runInNewContext("class Contexts {" + methods + "}; Contexts", { LlamaCpp: { EMBED_CONTEXT_SIZE: 100 }, BASELINE_EMBED_CONTEXT_MB: 150, EMBED_POOL_RERANK_RESERVE_MB: 1000 });
   const value = new Contexts();
   Object.assign(value, { embedContexts: [], touchActivity() {},
     ensureEmbedModel: async () => ({ createEmbeddingContext: async () => { creations++; await held.promise; return {}; } }),
@@ -150,7 +150,7 @@ function storeFixture({ separate = false, abortPreparation = false, chunkCount =
   const generateSource = between(storeSource, "export async function generateEmbeddings(", "export function createStore(").replace("export async", "async");
   const generate = vm.runInNewContext(cleanup + generateSource + "; generateEmbeddings", {
     console: quiet, process: { env: {} }, TextEncoder, Float32Array,
-    getLlm: () => llm, DEFAULT_EMBED_MODEL: "test", getEmbeddingFingerprint: () => "test",
+    getLlm: () => llm, DEFAULT_EMBED_MAX_DURATION_MS: 1_800_000, DEFAULT_EMBED_MODEL: "test", getEmbeddingFingerprint: () => "test",
     resolveEmbedOptions: () => ({ maxDocsPerBatch: 10, maxBatchBytes: 100 }),
     clearAllEmbeddings: () => { clears++; }, getPendingEmbeddingDocs: () => docs,
     buildEmbeddingBatches: value => [value], getEmbeddingDocsForBatch: (_db, value) => value,
@@ -212,8 +212,8 @@ test("T16: preparation abort admits no dimension probe or embedding batch", asyn
   const fixture = storeFixture({ abortPreparation: true }), result = await fixture.run();
   assert.equal(result.chunksEmbedded, 0); assert.equal(fixture.state().singleCalls, 0); assert.equal(fixture.state().batchCalls, 0);
 });
-test("T24: store session forwards the shared signal and defaults to sixty minutes", async () => {
-  const fixture = storeFixture(); await fixture.run();
+test("T24: released store session forwards the shared signal and explicit sixty-minute duration", async () => {
+  const fixture = storeFixture(); await fixture.run({ maxDurationMs: 3_600_000 });
   assert.equal(fixture.state().sessionOptions.signal, fixture.controller.signal);
   assert.equal(fixture.state().sessionOptions.maxDuration, 3_600_000);
 });

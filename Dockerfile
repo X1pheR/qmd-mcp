@@ -6,11 +6,9 @@ ARG TARGETARCH
 
 WORKDIR /opt/qmd
 
-RUN if [ "${TARGETARCH}" = "arm64" ]; then \
-      apt-get update \
-      && apt-get install -y --no-install-recommends python3 make g++ \
-      && rm -rf /var/lib/apt/lists/*; \
-    fi
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund

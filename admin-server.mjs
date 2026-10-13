@@ -5,7 +5,7 @@ import { createEmbeddingScheduler } from "./embedding-scheduler.mjs";
 import { readBoundedInteger } from "./runtime-config.mjs";
 import { createMaintenanceJobs, publicJob } from "./maintenance-jobs.mjs";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { createMcpServer as createReadMcpServer, invalidateSourcePathCache } from "./node_modules/@tobilu/qmd/dist/mcp/server.js";
+import { createMcpServer as createReadMcpServer } from "./node_modules/@tobilu/qmd/dist/mcp/server.js";
 import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { createStore } from "@tobilu/qmd";
 import { RequestBodyTooLargeError, collectBoundedBody } from "./http-policy.mjs";
@@ -120,7 +120,6 @@ async function effectiveIndexHealth() {
 
 async function updateCollections(collections, onProgress) {
   const result = await store.update({ collections, onProgress });
-  invalidateSourcePathCache(collections);
   return effectiveEmbeddingStatus(result, effectiveNeedsEmbedding());
 }
 
@@ -387,6 +386,7 @@ async function createMcpServer() {
             force,
             maxDocsPerBatch,
             maxBatchBytes: maxBatchMb * 1024 * 1024,
+            maxDurationMs: embedMaxDurationMs,
             chunkStrategy,
             onProgress: (progress) => setProgress({
               chunksEmbedded: progress.chunksEmbedded,

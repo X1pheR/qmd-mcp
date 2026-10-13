@@ -9,6 +9,8 @@ function between(source, start, end) {
   assert.ok(a >= 0 && b > a, "Pinned executable fixture anchors must exist");
   return source.slice(a, b);
 }
+const vectorHelpers = between(storeSource, "function scopedCollectionNames(", "function mergeSearchResultsByScore(")
+  + between(storeSource, "function annVecScan(", "export async function searchVec(");
 const searchSource = between(
   storeSource,
   "export async function searchVec(",
@@ -38,8 +40,8 @@ test("AE-30: vector search excludes incomplete checkpoint groups without reducin
       throw new Error("unexpected SQL");
     },
   };
-  const searchVec = vm.runInNewContext(searchSource + "; searchVec", {
-    Float32Array,
+  const searchVec = vm.runInNewContext(vectorHelpers + searchSource + "; searchVec", {
+    Float32Array, SQLITE_VEC_MAX_K: 4096,
     getEmbedding: async () => [1],
     withLazyContentVectorMigration: (_db, fn) => fn(),
     getDocid: hash => hash,

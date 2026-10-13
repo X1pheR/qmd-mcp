@@ -57,6 +57,7 @@ test("T03/T08: effective policy selects all enabled collections sequentially in 
   held.resolve(); await finish(h);
   assert.deepEqual(h.calls.map(v => v.collection), ["docs", "notes"]);
   assert.equal(h.maintenance.jobs.size, 1);
+  assert.ok(h.calls.every(value => value.maxDurationMs === 60000));
   assert.equal(h.scheduler.health().last.state, "succeeded");
 });
 test("T04: no eligible pending work creates no job", () => {

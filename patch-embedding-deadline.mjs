@@ -13,10 +13,8 @@ export function patchEmbeddingDeadline({ sdk, store, llm }) {
 
   store = once(store, "export async function generateEmbeddings(store, options) {",
     "export async function generateEmbeddings(store, options) {\n    options?.signal?.throwIfAborted();", "embedding pre-abort");
-  store = once(store, "    })(), name: 'generateEmbeddings' });",
-    "    })(), signal: options?.signal, name: 'generateEmbeddings' });", "embedding session signal");
-  store = once(store, 'if (raw === undefined || raw === "") return 30 * 60 * 1000;',
-    'if (raw === undefined || raw === "") return 3_600_000;', "embedding duration default");
+  store = once(store, "    }, { maxDuration: options?.maxDurationMs ?? DEFAULT_EMBED_MAX_DURATION_MS, name: 'generateEmbeddings' });",
+    "    }, { maxDuration: options?.maxDurationMs ?? DEFAULT_EMBED_MAX_DURATION_MS, signal: options?.signal, name: 'generateEmbeddings' });", "embedding session signal");
   store = region(store, "export async function generateEmbeddings(", "export function createStore(", source => {
     source = once(source, "        const tryEmbedChunk = async (chunk) => {",
       "        const tryEmbedChunk = async (chunk) => {\n            if (!session.isValid) return false;", "retry admission");
@@ -50,9 +48,12 @@ export function patchEmbeddingDeadline({ sdk, store, llm }) {
   store = region(store, "export async function searchVec(", "// =============================================================================\n// Embeddings", source => {
     source = once(source, "    // Step 1: Get vector matches from sqlite-vec (no JOINs allowed)",
       "    const incompleteChunkCount = withLazyContentVectorMigration(db, () => db.prepare(\"SELECT COALESCE(SUM(chunk_count), 0) AS count FROM (SELECT COUNT(*) AS chunk_count FROM content_vectors GROUP BY hash HAVING COUNT(*) < MAX(total_chunks))\").get()?.count ?? 0);\n    // Step 1: Get vector matches from sqlite-vec (no JOINs allowed)", "vector search incomplete checkpoint count");
-    const vecCall = "  `).all(new Float32Array(embedding), limit * 3);";
-    source = once(source, vecCall,
-      "  `).all(new Float32Array(embedding), limit * 3 + incompleteChunkCount);", "vector search checkpoint overfetch");
+    source = once(source, "vecResults = annVecScan(db, embedding, limit * 3);",
+      "vecResults = annVecScan(db, embedding, limit * 3 + incompleteChunkCount);", "global vector checkpoint overfetch");
+    source = once(source, "vecResults = annVecScan(db, embedding, Math.max(limit * 30, limit * 3));",
+      "vecResults = annVecScan(db, embedding, Math.max(limit * 30, limit * 3) + incompleteChunkCount);", "collection vector checkpoint overfetch");
+    source = once(source, "        WHERE d.collection = ?",
+      "        WHERE d.collection = ? AND cv.hash IN (SELECT hash FROM content_vectors GROUP BY hash HAVING COUNT(*) = MAX(total_chunks))", "exact collection checkpoint completeness");
     const placeholderClause = "    WHERE cv.hash || '_' || cv.seq IN (${placeholders})";
     source = once(source, placeholderClause,
       placeholderClause + "\n      AND cv.hash IN (SELECT hash FROM content_vectors GROUP BY hash HAVING COUNT(*) = MAX(total_chunks))", "vector search complete hash guard");
@@ -66,8 +67,8 @@ export function patchEmbeddingDeadline({ sdk, store, llm }) {
       "    let charChunks = await chunkDocumentAsync(content, maxChars, overlapChars, windowChars, filepath, chunkStrategy);\n    if (signal?.aborted) return [];", "post-AST deadline");
     source = once(source, "        const tokens = await llm.tokenize(text);",
       "        let tokens;\n        try { tokens = await llm.tokenize(text, { signal }); }\n        catch (error) { if (signal?.aborted) return; throw error; }\n        if (signal?.aborted) return;", "post-tokenization deadline");
-    source = once(source, "            const truncatedText = await llm.detokenize(fallbackTokens);",
-      "            if (signal?.aborted) return;\n            let truncatedText;\n            try { truncatedText = await llm.detokenize(fallbackTokens, { signal }); }\n            catch (error) { if (signal?.aborted) return; throw error; }\n            if (signal?.aborted) return;", "detokenization deadline");
+    source = once(source, "            const truncatedText = stripUnpairedSurrogates(await llm.detokenize(fallbackTokens));",
+      "            if (signal?.aborted) return;\n            let truncatedText;\n            try { truncatedText = stripUnpairedSurrogates(await llm.detokenize(fallbackTokens, { signal })); }\n            catch (error) { if (signal?.aborted) return; throw error; }\n            if (signal?.aborted) return;", "detokenization deadline");
     source = once(source, "    return results;", "    return signal?.aborted ? [] : results;", "incomplete preparation rejection");
     return source;
   }, "chunk preparation");
@@ -83,8 +84,8 @@ export function patchEmbeddingDeadline({ sdk, store, llm }) {
     source = once(source, "async ensureEmbedContexts() {", "async ensureEmbedContexts(signal) {\n        signal?.throwIfAborted();", "context setup admission");
     source = once(source, "            const model = await this.ensureEmbedModel();",
       "            const model = await this.ensureEmbedModel(signal);\n            signal?.throwIfAborted();", "post-model setup deadline");
-    source = once(source, "            const n = await this.computeParallelism(150);",
-      "            const n = await this.computeParallelism(150);\n            signal?.throwIfAborted();", "post-parallelism deadline");
+    source = once(source, "            const n = await this.computeParallelism(perContextMB, EMBED_POOL_RERANK_RESERVE_MB);",
+      "            const n = await this.computeParallelism(perContextMB, EMBED_POOL_RERANK_RESERVE_MB);\n            signal?.throwIfAborted();", "post-parallelism deadline");
     source = once(source, "            const threads = await this.threadsPerContext(n);",
       "            const threads = await this.threadsPerContext(n);\n            signal?.throwIfAborted();", "post-thread setup deadline");
     source = once(source, "            for (let i = 0; i < n; i++) {",

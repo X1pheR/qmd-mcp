@@ -19,29 +19,9 @@ const staticPatches = [
     "path helpers",
   ],
   [
-    'import { z } from "zod";',
-    'import { z } from "zod";\nimport fastGlob from "fast-glob";',
-    "source path glob",
-  ],
-  [
     'import { getConfigPath } from "../collections.js";',
     'import { getConfigPath, loadConfig } from "../collections.js";',
     "collection config loader",
-  ],
-  [
-    'import { enableProductionMode } from "../store.js";',
-    'import { enableProductionMode, handelize } from "../store.js";',
-    "indexed path normalizer",
-  ],
-  [
-    'httpServer.listen(port, "localhost", () => resolve());',
-    'const bindHost = process.env.QMD_HTTP_HOST || "localhost";\n        httpServer.listen(port, bindHost, () => resolve());',
-    "listen host",
-  ],
-  [
-    'log(`QMD MCP server listening on http://localhost:${actualPort}/mcp`);',
-    'log(`QMD MCP server listening on http://${process.env.QMD_HTTP_HOST || "localhost"}:${actualPort}/mcp`);',
-    "startup log",
   ],
   [
     'const body = JSON.stringify({ status: "ok", uptime: Math.floor((Date.now() - startTime) / 1000) });',
@@ -49,8 +29,8 @@ const staticPatches = [
     "health status",
   ],
   [
-    'async function createMcpServer(store) {',
-    'export async function createMcpServer(store) {',
+    'async function createMcpServer(store, inflight) {',
+    'export async function createMcpServer(store, inflight) {',
     "MCP server export",
   ],
 ];
@@ -67,14 +47,7 @@ source = replaceExactlyOnce(
   source,
   sourcePathHelperAnchor,
   sourcePathHelperAnchor + `
-const SOURCE_PATH_CACHE_TTL_MS = 60_000;
-const SOURCE_PATH_EXCLUDE_DIRS = ["node_modules", ".git", ".cache", "vendor", "dist", "build"];
-const sourcePathCache = new Map();
 const sourceRelativeRoot = (process.env.QMD_SOURCE_RELATIVE_ROOT || "").trim() || null;
-
-export function invalidateSourcePathCache(collectionNames) {
-    for (const collectionName of collectionNames) sourcePathCache.delete(collectionName);
-}
 
 function relativeToConfiguredSourceRoot(absolutePath) {
     if (!sourceRelativeRoot) return null;
@@ -82,51 +55,6 @@ function relativeToConfiguredSourceRoot(absolutePath) {
     if (candidate === "") return "";
     if (candidate === ".." || candidate.startsWith(".." + sep) || isAbsolute(candidate)) return null;
     return candidate.split(sep).join("/");
-}
-
-async function sourcePathMapForCollection(collectionName) {
-    const cached = sourcePathCache.get(collectionName);
-    if (cached && Date.now() - cached.loadedAt < SOURCE_PATH_CACHE_TTL_MS) return cached;
-
-    const config = loadConfig();
-    const collection = config?.collections?.[collectionName];
-    if (!collection?.path) {
-        const missing = { loadedAt: Date.now(), collectionPath: null, paths: new Map() };
-        sourcePathCache.set(collectionName, missing);
-        return missing;
-    }
-
-    const configuredIgnore = Array.isArray(collection.ignore) ? collection.ignore : [];
-    const ignore = [
-        ...SOURCE_PATH_EXCLUDE_DIRS.map((name) => "**/" + name + "/**"),
-        ...configuredIgnore,
-    ];
-    const files = await fastGlob(collection.pattern || "**/*.md", {
-        cwd: collection.path,
-        onlyFiles: true,
-        followSymbolicLinks: false,
-        dot: false,
-        ignore,
-    });
-    const paths = new Map();
-    for (const originalPath of files) {
-        if (originalPath.split("/").some((part) => part.startsWith("."))) continue;
-        let indexedPath;
-        try {
-            indexedPath = handelize(originalPath);
-        } catch {
-            continue;
-        }
-        if (!paths.has(indexedPath)) {
-            paths.set(indexedPath, originalPath);
-        } else if (paths.get(indexedPath) !== originalPath) {
-            paths.set(indexedPath, null);
-        }
-    }
-
-    const resolved = { loadedAt: Date.now(), collectionPath: collection.path, paths };
-    sourcePathCache.set(collectionName, resolved);
-    return resolved;
 }
 
 function collectionNameForResult(result) {
@@ -140,13 +68,14 @@ async function sourceRelativePathFor(result) {
     const collectionName = collectionNameForResult(result);
     if (!collectionName) return null;
     const prefix = collectionName + "/";
-    const indexedPath = result.displayPath.startsWith(prefix)
-        ? result.displayPath.slice(prefix.length)
-        : result.displayPath;
-    const collection = await sourcePathMapForCollection(collectionName);
-    const originalPath = collection.paths.get(indexedPath);
-    if (!originalPath || !collection.collectionPath) return null;
-    return relativeToConfiguredSourceRoot(resolve(collection.collectionPath, originalPath));
+    if (!result.displayPath.startsWith(prefix)) return null;
+    const originalPath = result.displayPath.slice(prefix.length);
+    if (!originalPath || isAbsolute(originalPath) || originalPath.split("/").includes("..")) return null;
+    // QMD 2.8.3 stores the exact original relative path; no normalized-name
+    // reverse lookup, filesystem scan or invalidation cache is necessary.
+    const collection = loadConfig()?.collections?.[collectionName];
+    if (!collection?.path) return null;
+    return relativeToConfiguredSourceRoot(resolve(collection.path, originalPath));
 }`,
   "exact source path resolver",
 );
@@ -224,8 +153,8 @@ routineQueryBlock = replaceExactlyOnce(
 );
 routineQueryBlock = replaceExactlyOnce(
   routineQueryBlock,
-  '    }, async ({ searches, limit, minScore, candidateLimit, collections, intent, rerank }) => {',
-  '    }, async ({ searches, limit, minScore, collections, intent }) => {',
+  '    }, track(async ({ query, searches, limit, minScore, candidateLimit, collections, intent, rerank }) => {',
+  '    }, track(async ({ query, searches, limit, minScore, collections, intent }) => {',
   "routine query handler signature",
 );
 routineQueryBlock = replaceExactlyOnce(
@@ -268,8 +197,8 @@ rerankedQueryBlock = replaceExactlyOnce(
 );
 rerankedQueryBlock = replaceExactlyOnce(
   rerankedQueryBlock,
-  '    }, async ({ searches, limit, minScore, candidateLimit, collections, intent, rerank }) => {',
-  '    }, async ({ searches, limit, minScore, candidateLimit, collections, intent }) => {',
+  '    }, track(async ({ query, searches, limit, minScore, candidateLimit, collections, intent, rerank }) => {',
+  '    }, track(async ({ query, searches, limit, minScore, candidateLimit, collections, intent }) => {',
   "reranked query handler signature",
 );
 rerankedQueryBlock = replaceExactlyOnce(
@@ -286,8 +215,8 @@ source = source.slice(0, queryStartIndex)
 
 source = replaceExactlyOnce(
   source,
-  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n        },\n    }, async ({ file, fromLine, maxLines, lineNumbers }) => {',
-  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n            exposeToUser: z.boolean().optional().default(false).describe("Return a user-visible MCP resource instead of internal text. Preview/show/open/render/inspect requests do not authorize resource exposure."),\n            confirmUserApprovedExposure: z.literal(true).optional().describe("Hard confirmation gate. Set true only when the user explicitly approved exposing this QMD result as a user-visible MCP resource; ordinary preview/show/open/render/inspect intent is not approval."),\n        },\n    }, async ({ file, fromLine, maxLines, lineNumbers, exposeToUser, confirmUserApprovedExposure }) => {',
+  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n        }),\n    }, track(async ({ file, fromLine, maxLines, lineNumbers }) => {',
+  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n            exposeToUser: z.boolean().optional().default(false).describe("Return a user-visible MCP resource instead of internal text. Preview/show/open/render/inspect requests do not authorize resource exposure."),\n            confirmUserApprovedExposure: z.literal(true).optional().describe("Hard confirmation gate. Set true only when the user explicitly approved exposing this QMD result as a user-visible MCP resource; ordinary preview/show/open/render/inspect intent is not approval."),\n        }),\n    }, track(async ({ file, fromLine, maxLines, lineNumbers, exposeToUser, confirmUserApprovedExposure }) => {',
   "get exposure schema",
 );
 
@@ -300,8 +229,8 @@ source = replaceExactlyOnce(
 
 source = replaceExactlyOnce(
   source,
-  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n        },\n    }, async ({ pattern, maxLines, maxBytes, lineNumbers }) => {',
-  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n            exposeToUser: z.boolean().optional().default(false).describe("Return user-visible MCP resources instead of internal text. Preview/show/open/render/inspect requests do not authorize resource exposure."),\n            confirmUserApprovedExposure: z.literal(true).optional().describe("Hard confirmation gate. Set true only when the user explicitly approved exposing these QMD results as user-visible MCP resources; ordinary preview/show/open/render/inspect intent is not approval."),\n        },\n    }, async ({ pattern, maxLines, maxBytes, lineNumbers, exposeToUser, confirmUserApprovedExposure }) => {',
+  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n        }),\n    }, track(async ({ pattern, maxLines, maxBytes, lineNumbers }) => {',
+  '            lineNumbers: z.boolean().optional().default(true).describe("Add line numbers to output (format: \'N: content\'). On by default; set false for raw content."),\n            exposeToUser: z.boolean().optional().default(false).describe("Return user-visible MCP resources instead of internal text. Preview/show/open/render/inspect requests do not authorize resource exposure."),\n            confirmUserApprovedExposure: z.literal(true).optional().describe("Hard confirmation gate. Set true only when the user explicitly approved exposing these QMD results as user-visible MCP resources; ordinary preview/show/open/render/inspect intent is not approval."),\n        }),\n    }, track(async ({ pattern, maxLines, maxBytes, lineNumbers, exposeToUser, confirmUserApprovedExposure }) => {',
   "multi-get exposure schema",
 );
 
@@ -316,20 +245,6 @@ writeFileSync(target, source, "utf8");
 
 const storeTarget = "/opt/qmd/node_modules/@tobilu/qmd/dist/store.js";
 let storeSource = readFileSync(storeTarget, "utf8");
-storeSource = replaceExactlyOnce(
-  storeSource,
-  "    }, { maxDuration: 30 * 60 * 1000, name: 'generateEmbeddings' });",
-  `    }, { maxDuration: (() => {
-        const raw = process.env.QMD_EMBED_MAX_DURATION_MS;
-        if (raw === undefined || raw === "") return 30 * 60 * 1000;
-        const value = Number(raw);
-        if (!Number.isInteger(value) || value < 60_000 || value > 7_200_000) {
-            throw new Error("QMD_EMBED_MAX_DURATION_MS must be an integer between 60000 and 7200000 milliseconds");
-        }
-        return value;
-    })(), name: 'generateEmbeddings' });`,
-  "embedding max duration",
-);
 const sdkTarget = "/opt/qmd/node_modules/@tobilu/qmd/dist/index.js";
 const llmTarget = "/opt/qmd/node_modules/@tobilu/qmd/dist/llm.js";
 const deadlineSources = patchEmbeddingDeadline({
@@ -340,14 +255,4 @@ writeFileSync(sdkTarget, deadlineSources.sdk, "utf8");
 writeFileSync(llmTarget, deadlineSources.llm, "utf8");
 writeFileSync(storeTarget, deadlineSources.store, "utf8");
 
-const cliTarget = "/opt/qmd/node_modules/@tobilu/qmd/dist/cli/qmd.js";
-let cliSource = readFileSync(cliTarget, "utf8");
-cliSource = replaceExactlyOnce(
-  cliSource,
-  '            if (!entry.isFile() || !entry.name.includes(filename))',
-  '            if (!entry.isFile() || entry.name.endsWith(".etag") || !entry.name.includes(filename))',
-  "doctor model-cache sidecar filter",
-);
-writeFileSync(cliTarget, cliSource, "utf8");
-
-console.log("Patched QMD HTTP behavior, query routing, document retrieval, embedding timeout, and doctor cache diagnostics.");
+console.log("Patched retained QMD integration behavior; released bind, embedding-duration and doctor implementations are reused.");

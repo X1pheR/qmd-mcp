@@ -52,6 +52,7 @@ export function createEmbeddingScheduler({
           const value = await embed({
             collection, force: false, chunkStrategy: "auto", resumeIncomplete: true,
             maxDocsPerBatch, maxBatchBytes: maxBatchMb * 1024 * 1024, signal,
+            maxDurationMs: Math.max(1, deadline - clock.monotonic()),
             onProgress(progress) {
               observedChunks = Math.max(observedChunks, progress.chunksEmbedded || 0);
               setProgress({ ...progress, collection, collectionIndex: index + 1, collectionCount: selected.length });

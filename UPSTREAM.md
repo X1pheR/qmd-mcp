@@ -5,9 +5,9 @@ QMD MCP is a maintained integration layer around the upstream `@tobilu/qmd` pack
 ## Current upstream baseline
 
 - Package: `@tobilu/qmd`
-- Version: `2.5.3`
+- Accepted source candidate version: `2.8.3`
 - Upstream project: `tobi/qmd`
-- Upstream release: `v2.5.3`
+- Upstream release candidate baseline: `v2.8.3`; live downstream unchanged
 
 The exact npm dependency graph is locked in `package-lock.json`.
 
@@ -153,20 +153,8 @@ This inline register is the product-owned logical-patch projection used by SDLC-
 {
   "schema_version": 1,
   "upstream": "tobi/qmd",
-  "baseline": "v2.5.3",
+  "baseline": "v2.8.3",
   "patches": [
-    {
-      "id": "QM-P01",
-      "kind": "upstream",
-      "scope": "Configurable upstream HTTP bind host and bind-aware startup logging",
-      "local_commits": [
-        "45efce0"
-      ],
-      "checked_on": "2026-10-10",
-      "issue": "https://github.com/tobi/qmd/issues/743",
-      "pr": "https://github.com/tobi/qmd/pull/583",
-      "pr_state": "open"
-    },
     {
       "id": "QM-P02",
       "kind": "upstream",
@@ -194,12 +182,12 @@ This inline register is the product-owned logical-patch projection used by SDLC-
     {
       "id": "QM-P04",
       "kind": "upstream",
-      "scope": "QMD source-path cache reconciliation and invalidation in maintained wrapper",
+      "scope": "Configured source-relative-path handoff metadata with canonical stored spelling and root containment; obsolete reverse-lookup cache removed",
       "local_commits": [
         "45efce0",
         "5770753"
       ],
-      "checked_on": "2026-10-10",
+      "checked_on": "2026-10-13",
       "issue": null,
       "pr": null
     },
@@ -228,18 +216,6 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "checked_on": "2026-10-10",
       "issue": null,
       "pr": null
-    },
-    {
-      "id": "QM-P07",
-      "kind": "upstream",
-      "scope": "Doctor model-cache diagnostic sidecar filtering",
-      "local_commits": [
-        "45efce0"
-      ],
-      "checked_on": "2026-10-10",
-      "issue": "https://github.com/tobi/qmd/issues/812",
-      "pr": "https://github.com/tobi/qmd/pull/829",
-      "pr_state": "released"
     },
     {
       "id": "QM-P08",
@@ -276,18 +252,6 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "issue": "https://github.com/tobi/qmd/issues/1058",
       "pr": "https://github.com/tobi/qmd/pull/1059",
       "pr_state": "draft"
-    },
-    {
-      "id": "QM-P11",
-      "kind": "upstream",
-      "scope": "Configurable bounded embedding session duration and timeout override",
-      "local_commits": [
-        "e44b2f4"
-      ],
-      "checked_on": "2026-10-10",
-      "issue": "https://github.com/tobi/qmd/issues/673",
-      "pr": "https://github.com/tobi/qmd/pull/708",
-      "pr_state": "merged"
     },
     {
       "id": "QM-P12",
@@ -336,3 +300,16 @@ QM-P05 remains nonconformant: the contribution does not preempt native work
 already admitted inside a batch or retain partially complete document vectors
 for checkpoint resume. It does not change the pinned2.5.3 runtime or the
 product's own scheduler. No downstream release or deployment changed.
+
+## Accepted released-source migration — 2026-10-13
+
+The source candidate adopts exact npm QMD2.8.3, integrity `sha512-zjfVwrObPB618B6x8SdhlGv/tX9OxRHsbQnr5DUtBvqPK6HGQ27lM+9/BAY5okpjrHVnW56hLyDkqoTcsrVLzA==`, whose npm gitHead matches official release commit `facd35e01359e59d938bc9418e93fb9318addee3`. GitHub release `immutable=false` remains explicit; immutable candidate provenance comes from the verified npm integrity, exact source and candidate image ID `sha256:c23f2f578af3c39be90b4d869013955a224f2e817967d145a54e411e573ef64c`. No live runtime, deployment configuration, product release or version tag changed. Historical pinned2.5.3 statements above describe the pre-migration source.
+
+The canonical product verifier passed all77 executable regression tests, patched-source syntax, exact package/native runtime and OCI labels, and all three live disposable MCP/read/update, refresh-scheduler and embedding-scheduler smoke gates. Existing MCP2025 sessions remain compatible with the released MCP2.0 server factory. Exact original filename handoff, internal-text/user-approved resource exposure, no-rerank routine query, bounded query_reranked, serialized updates, cancellation/checkpoint resume and embedding-disabled collections retain acceptance. Build prerequisites now cover native SQLite compilation on both supported source architectures; native runtime acceptance here is amd64 only. Independent static review passed. Evidence: `qmd-v283-{canonical-final,regressions-next,path-doctor,duration-red,mcp-smoke-debug}.log`; final acceptance `run-20261013T230923175199Z-2886820a6fec`, npm provenance `run-20261013T231034180916Z-eb2b9790d846`. Earlier failure receipts remain failures and explain the actual compatibility corrections.
+
+Retired active candidate groups:
+- QM-P01: upstream merged PR #677 (`fec626e2f2a61f04d9780bcfb5ee5b67e26b3d85`, merge `5e578c056aa21bc423a6e37394eb1669c6fdd9c8`) provides host options and bind-aware logging. The older unmerged PR #583 is historical partial tracking. Exact host/log source patches were removed. The wrapper preserves its existing QMD_HTTP_HOST contract through its own accepted listener; no production environment migration was needed.
+- QM-P07: released merged PR #829 (`e4c864d09dc86a2442d132f2110c3da9d7f7c512`) filters real GGUF blobs. The downstream doctor patch was removed; executable adversarial sidecar-order tests retain correct diagnostics for actual invalid GGUF candidates.
+- QM-P11: released merged PR #708 (`962fa6e870c6404bdad73b89ca7aa5eb183bfc23`) exposes maxDurationMs. The downstream environment-parser/default patch was removed. Manual jobs pass the validated existing60-minute configuration explicitly; scheduler calls pass the remaining shared deadline through the supported SDK option.
+
+The obsolete reverse-lookup cache, filesystem glob and invalidation machinery were also removed: released merged PR #698 (head `5528b14abe3cc3bfef59613a2feb410c33a996c3`, literal-path commit `070147d8ab313a20ae35b02bca388c02a82d1b92`) stores original paths. QM-P04 remains active for the separate configured source-relative metadata/containment contract. Exact underscore/hyphen spelling, traversal refusal, outside-root refusal and immediate config visibility are executable tests. QM-P02 still owns the separate routine/reranked policy surface, even though upstream issue #477/merged PR #478 already exposes a generic rerank toggle; no duplicate generic feature PR is justified. Other active source patches still require their issue/PR or an operator-approved disposition. Full fork retirement and release eligibility are not claimed.
