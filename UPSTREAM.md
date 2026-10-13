@@ -174,7 +174,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "local_commits": [
         "ad5a596"
       ],
-      "checked_on": "2026-10-10",
+      "checked_on": "2026-10-13",
       "issue": "https://github.com/tobi/qmd/issues/959",
       "pr": "https://github.com/tobi/qmd/pull/1055",
       "pr_state": "draft"
@@ -194,7 +194,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
     {
       "id": "QM-P05",
       "kind": "upstream",
-      "scope": "Native-call cancellation admission and retained incomplete-vector checkpoint/resume behavior",
+      "scope": "Retained incomplete-vector checkpoint/resume behavior, requiring partition-aware upstream completeness and migration compatibility",
       "local_commits": [
         "e44b2f4",
         "d31e67e",
@@ -236,7 +236,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "local_commits": [
         "45efce0"
       ],
-      "checked_on": "2026-10-10",
+      "checked_on": "2026-10-13",
       "issue": "https://github.com/tobi/qmd/issues/1056",
       "pr": "https://github.com/tobi/qmd/pull/1057",
       "pr_state": "draft"
@@ -248,7 +248,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "local_commits": [
         "45efce0"
       ],
-      "checked_on": "2026-10-10",
+      "checked_on": "2026-10-13",
       "issue": "https://github.com/tobi/qmd/issues/1058",
       "pr": "https://github.com/tobi/qmd/pull/1059",
       "pr_state": "draft"
@@ -256,7 +256,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
     {
       "id": "QM-P12",
       "kind": "upstream",
-      "scope": "SDK embedding AbortSignal forwarding, cooperative batch admission and abort listener cleanup",
+      "scope": "SDK AbortSignal forwarding, caller-local native evaluation admission, cooperative batch cancellation and listener cleanup",
       "local_commits": [
         "e44b2f4",
         "d31e67e",
@@ -266,7 +266,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "issue": "https://github.com/tobi/qmd/issues/1061",
       "pr": "https://github.com/tobi/qmd/pull/1063",
       "pr_state": "draft",
-      "pr_head_sha": "73566417ff6603690d657898b30e4a3403e9ad7f"
+      "pr_head_sha": "3cd88481c00d84f1b8312fc1342a3fc9da9c6cc4"
     }
   ]
 }
@@ -313,3 +313,9 @@ Retired active candidate groups:
 - QM-P11: released merged PR #708 (`962fa6e870c6404bdad73b89ca7aa5eb183bfc23`) exposes maxDurationMs. The downstream environment-parser/default patch was removed. Manual jobs pass the validated existing60-minute configuration explicitly; scheduler calls pass the remaining shared deadline through the supported SDK option.
 
 The obsolete reverse-lookup cache, filesystem glob and invalidation machinery were also removed: released merged PR #698 (head `5528b14abe3cc3bfef59613a2feb410c33a996c3`, literal-path commit `070147d8ab313a20ae35b02bca388c02a82d1b92`) stores original paths. QM-P04 remains active for the separate configured source-relative metadata/containment contract. Exact underscore/hyphen spelling, traversal refusal, outside-root refusal and immediate config visibility are executable tests. QM-P02 still owns the separate routine/reranked policy surface, even though upstream issue #477/merged PR #478 already exposes a generic rerank toggle; no duplicate generic feature PR is justified. Other active source patches still require their issue/PR or an operator-approved disposition. Full fork retirement and release eligibility are not claimed.
+
+## Existing contribution acceptance completed — 2026-10-13
+
+PR #1055 text defaults (55103fc20574966e24a3986ba31b797e2127d88a), #1057 factory export (af752f5e974e435fec7bc3ac114781e7efb39ea8) and #1059 HTTP counters (1388035732c0240a04cef4000818f45953ee696e) remain open/unmerged and now pass exact-branch TypeScript/build,110affectedMCPtests under each Node22/Bun1.3.14 and canonical package smoke for grammar assets and both runtime CLI/wrappers. PR1055 adds two passing document-content regressions per runtime. Node21/Bun25establishedMCP/native skips remain explicit. Unchanged unrelated upstream93d211acceptance is reused rather than rerun. Evidence: `qmd-pr{1055,1057,1059}-acceptance.log`, successful combined run `run-20261013T231345288073Z-5c8f2ccc4a91`. Public PR descriptions now reflect these exact gates; no full greenBunCI or upstream adoption is claimed.
+
+PR1063 now includes native admission completion at exact head `3cd88481c00d84f1b8312fc1342a3fc9da9c6cc4`. Six new TDD regressions failed before implementation and pass after it: pre-abort, shared-setup caller isolation, preparation abort, sequential/parallel stable-position admission and session forwarding. Shared model setup does not inherit an individual caller signal; admitted evaluations are awaited. TypeScript and affected LLM/SDK/native suites pass140tests per runtime (Node37/Bun38native/model skips); canonical package smoke passes. Independent tracked+untracked diff review passed. Evidence: `qmd-native-1061-{red,green,package}.log`; publication `run-20261013T232124350701Z-8bce47f193b5` and official exact-head GitHub readback. Temporary dependency-link and wrong-source-branch attempts failed cleanly before publication; normal fast-forward integration onto the existing named contribution branch satisfied the unchanged publisher gates. QM-P05 now owns only the remaining partition-aware checkpoint/resume scope. No native preemption, partial-checkpoint support, downstream release or deployment is claimed.
