@@ -189,9 +189,11 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "45efce0",
         "5770753"
       ],
-      "checked_on": "2026-10-13",
-      "issue": null,
-      "pr": null
+      "checked_on": "2026-10-14",
+      "issue": "https://github.com/tobi/qmd/issues/1068",
+      "pr": "https://github.com/tobi/qmd/pull/1069",
+      "pr_state": "open",
+      "pr_head_sha": "8c0d4de14e4e1cc166bcdd25205fb0f5b720d552"
     },
     {
       "id": "QM-P05",
@@ -387,3 +389,12 @@ run-20261014T032102859560Z-875c86e039f7 succeeds at the same head.
 Current QMD register has9retained groups,6complete pairs and3remaining
 structural blockers. No downstream dependency/source adoption, own
 release, production change or patch retirement is claimed.
+
+
+## Verified source handoff contribution — 2026-10-14
+
+QM-P04 now has issue #1068 and draft PR #1069 at exact head 8c0d4de14e4e1cc166bcdd25205fb0f5b720d552, Closes #1068 verified by current GitHub API. This opt-in sourceRoot factory option adds collection and source_relative_path to either query variant. Current registered collection configuration is read directly without document statistics or a reverse-lookup cache. Original filename spelling is preserved; unknown/absolute/traversal/outside-root mappings return no usable path. Metadata is lexical only: no file access, symlink resolution, freshness or authorization claim. Default callers and result shape remain unchanged. It is stacked on factory #1057 and query-policy #1067, with an explicit prerequisite disclosure.
+
+Fourteen strict regressions pass on Node and Bun, including six invalid mappings, collection updates, sibling-prefix containment, two-server isolation, option mutation and default absence. Types/lint pass in run-20261014T034207978747Z-ad7f4339b7f5. Build and installed Node/Bun CLI/wrapper/grammar package smoke pass in run-20261014T040002153858Z-6c75cc382e45, OOMKilled=false. Production/docs/full fixture and incremental boundary reviews pass. Source SHA256 ca9fdfb067646b0e320e37546a9b8ad413cd8985a082f501080e6889c4c4c7c8; fixture cd92fb048e51665a716120822801db125b6f074be93f71aae70893148ad45722. Managed normalization035218-6494 and public source scrub035220-6d443 pass; verified commit040048-316c and managed publication040105-c8c613 succeed at the exact head. Existing accepted default compatibility and policy tests are reused. Logs qmd-source-handoff-1068-*.log remain in the existing report directory.
+
+Current register: nine retained groups, seven complete active pairs, two structurally nonconformant groups (scheduler and unapproved distribution). No downstream source adoption, own release, deployment or patch retirement is claimed.
