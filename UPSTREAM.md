@@ -163,9 +163,11 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "45efce0",
         "0e9f4d7"
       ],
-      "checked_on": "2026-10-10",
-      "issue": null,
-      "pr": null
+      "checked_on": "2026-10-14",
+      "issue": "https://github.com/tobi/qmd/issues/1066",
+      "pr": "https://github.com/tobi/qmd/pull/1067",
+      "pr_state": "open",
+      "pr_head_sha": "f803ecbcad72115dd5ef390137438dc2d514fb96"
     },
     {
       "id": "QM-P03",
@@ -346,3 +348,42 @@ Existing draft PR #1063 is read-back verified at `ee367f6eae346d5db784d3d44658e3
 All 11 new checkpoint regressions pass on Node and Bun, including changed plan/model/fingerprint/position/count rejection, default cleanup, lazy legacy repair, 4,100 incomplete rows beyond the KNN cap and a real two-connection publication race. Native lint, types, build and canonical package smoke pass; independent source and typed-harness reviews pass. Accepted existing store/SDK/read/metadata phases are reused. Remaining metadata cases, vector-layout migration and partition repack pass; real concurrency, helper and HTTP/daemon acceptance passes in `run-20261014T021954903207Z-c6614ad25881` (Node2 concurrency,46 helpers,22 HTTP/daemon; Bun11 HTTP with established16 skips). Disposable IPv4-only loopback and adequate bounded process limits are verifier conditions, not production changes.
 
 One pre-existing 20,001-document metadata fixture exceeds a 1.5 GiB worker on both the feature (`run-20261014T021018111357Z-54b8628ff99d`) and unchanged prerequisite (`run-20261014T021438070658Z-354f1f62e9fb`), each with cgroup OOM evidence. It is not a new checkpoint regression or a green full-suite claim. Earlier failed worker/budget attempts are retained in evidence rather than counted as passes. Exact logs: `qmd-checkpoint-1064-{race-node-final,bun,harness-lint,remaining-node,functional-final,concurrency-http,vector-baseline}.log` under the existing SDLC-09 report directory. Source commit `ca92b902...` and managed publication `run-20261014T022411833295Z-ebcc4010c4d8` are verified, and typed GitHub readback confirms PR #1065 exact head and issue. Nine retained groups now have five complete active pairs and four structural blockers; no downstream release, production change or fork retirement is claimed.
+
+
+## Verified opt-in query policy contribution — 2026-10-14
+
+QM-P02 now has issue #1066 and draft PR #1067 at exact head
+`f803ecbcad72115dd5ef390137438dc2d514fb96`, linked by Closes #1066.
+This source-native proposal exposes optional `queryPolicy: "split-rerank"`
+through the factory exported by prerequisite PR #1057 at
+`af752f5e974e435fec7bc3ac114781e7efb39ea8`. Default factory, stdio and
+HTTP behavior remain unchanged. Routine query always skips reranking;
+the separate query_reranked always enables it and accepts integer
+candidateLimit 1–20 with default10. Plain/typed queries, metadata,
+collections, formatting and in-flight tracking remain shared.
+
+Duplicate checks reuse issue477/mergedPR478 for the existing generic
+rerank toggle. The separate enforced tool policy was not covered there
+or by a current upstream PR. Typed GitHub readback confirms the exact
+new fork/head, open draft state, main base and issue link.
+
+Valid RED: run-20261014T030306834669Z-0c9e9fe354b9.
+Initial10Node/type/lint GREEN: run-20261014T030353112220Z-918b8ea4cee9.
+Final source/fixture review passes. The nonempty fixture line expectation
+was corrected by an independent fixing context to the unchanged formatter's
+first-line behavior; Bun shim-only matcher incompatibilities were also
+fixed without weakening assertions. Final13Node cases are established
+by unchanged12 in run031036-aad52, corrected one in run031559-850854,
+and seven changed matcher cases in run031812-287158. All13Bun cases,
+types, lint, build/package and35affected existing MCP/HTTP tests per
+runtime pass in run-20261014T031812729912Z-287158737ad3.
+ProductionSHA25633820254a4fd0c8b0f3e741d0b708c734bae12c4d3bea0eed3d171c34021482c;
+fixtureSHA256e6c32c2643c4c30e9d861917008255b06f679dc514ce9978f083565d0d712015.
+No full-project suite claim. Existing reports qmd-query-policy-1066-*.log
+retain failures and accepted phases.
+
+Verified commit run032045-89a00; managed publication
+run-20261014T032102859560Z-875c86e039f7 succeeds at the same head.
+Current QMD register has9retained groups,6complete pairs and3remaining
+structural blockers. No downstream dependency/source adoption, own
+release, production change or patch retirement is claimed.
