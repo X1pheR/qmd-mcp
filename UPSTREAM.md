@@ -262,11 +262,11 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "d31e67e",
         "d5272ef"
       ],
-      "checked_on": "2026-10-13",
+      "checked_on": "2026-10-14",
       "issue": "https://github.com/tobi/qmd/issues/1061",
       "pr": "https://github.com/tobi/qmd/pull/1063",
       "pr_state": "draft",
-      "pr_head_sha": "3cd88481c00d84f1b8312fc1342a3fc9da9c6cc4"
+      "pr_head_sha": "ee367f6eae346d5db784d3d44658e3e96af82435"
     }
   ]
 }
@@ -334,3 +334,7 @@ Requested decision: retain this precisely bounded product-owned distribution ada
 Before an approved disposition can clear a gate, the operator-owned product ADR must identify the exact retained scope, rationale, owner, acceptance evidence and review/exit trigger. Proposed review trigger: the next suitable official upstream release or2026-11-14, whichever comes first. Exit requires equivalent released functionality and distribution, accepted source/runtime/consumer parity, rollback readiness and the existing explicit production/retirement acceptance. This proposal authorizes none of those transitions and approves no missing contribution.
 
 The existing shared repository/release lifecycle invokes the single canonical SDLC checker before managed tag/publication/recovery transitions. Direct public workflow integration remains incomplete: the checker source is private and repository-scoped public GitHub tokens cannot read it. No production credentials, privileged public runner, second checker or extra service was introduced.
+
+## Cancellation fixture follow-up — 2026-10-14
+
+Existing draft PR #1063 is read-back verified at `ee367f6eae346d5db784d3d44658e3e96af82435`, still linked to issue #1061. A two-line fixture correction requires the AbortSignal already forwarded by the accepted native prerequisite while preserving strict model equality; production source is unchanged. Exactly those two existing tests pass on Node and Bun in `run-20261014T015649214748Z-04fa534cea9c`, with independent review. Publication `run-20261014T020006885826Z-187ae1c88841` succeeded and exact head/issue readback passed. Earlier unchanged native source gates remain valid. Evidence: `qmd-cancellation-1063-model-options.log` in the existing SDLC-09 report directory. No downstream release or deployment is claimed.
