@@ -200,9 +200,11 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "d31e67e",
         "d5272ef"
       ],
-      "checked_on": "2026-10-13",
+      "checked_on": "2026-10-14",
       "issue": "https://github.com/tobi/qmd/issues/1064",
-      "pr": null
+      "pr": "https://github.com/tobi/qmd/pull/1065",
+      "pr_state": "open",
+      "pr_head_sha": "ca92b902b750a89604750fa749fd8df238782526"
     },
     {
       "id": "QM-P06",
@@ -320,7 +322,7 @@ PR #1055 text defaults (55103fc20574966e24a3986ba31b797e2127d88a), #1057 factory
 
 PR1063 now includes native admission completion at exact head `3cd88481c00d84f1b8312fc1342a3fc9da9c6cc4`. Six new TDD regressions failed before implementation and pass after it: pre-abort, shared-setup caller isolation, preparation abort, sequential/parallel stable-position admission and session forwarding. Shared model setup does not inherit an individual caller signal; admitted evaluations are awaited. TypeScript and affected LLM/SDK/native suites pass140tests per runtime (Node37/Bun38native/model skips); canonical package smoke passes. Independent tracked+untracked diff review passed. Evidence: `qmd-native-1061-{red,green,package}.log`; publication `run-20261013T232124350701Z-8bce47f193b5` and official exact-head GitHub readback. Temporary dependency-link and wrong-source-branch attempts failed cleanly before publication; normal fast-forward integration onto the existing named contribution branch satisfied the unchanged publisher gates. QM-P05 now owns only the remaining partition-aware checkpoint/resume scope. No native preemption, partial-checkpoint support, downstream release or deployment is claimed.
 
-QM-P05 has focused upstream issue #1064 for opt-in resumable checkpoints. Current upstream uses collection-partitioned vectors; current metadata has no explicit chunk-content identity. Reusing sequence numbers alone cannot establish safe reuse after chunk-plan changes. The issue requests the preferred persisted chunk-identity contract, default cleanup preservation, incomplete-group exclusion by model/fingerprint across partitions and legacy migration acceptance. No checkpoint PR, new schema migration or accepted divergence is claimed.
+QM-P05 now has upstream issue #1064 and draft PR #1065 at exact head `ca92b902b750a89604750fa749fd8df238782526`, with an explicit Closes link and true-fork/base readback. The feature is stacked on native-admission PR #1063, prerequisite `ee367f6eae346d5db784d3d44658e3e96af82435`; its own feature commit is separate. Opt-in `resume: true` retains and reuses completed chunks only for an unchanged formatted chunk plan, positions, model and fingerprint. Incomplete checkpoints are excluded before KNN selection across real partitions and metadata scopes. A synchronous read transaction prevents a concurrent first checkpoint from entering the legacy fast path. Default cleanup and complete legacy embeddings retain their behavior. This is an upstream contribution, not a released or deployed adoption.
 
 
 ## Unapproved distribution disposition proposal — QM-P08
@@ -338,3 +340,9 @@ The existing shared repository/release lifecycle invokes the single canonical SD
 ## Cancellation fixture follow-up — 2026-10-14
 
 Existing draft PR #1063 is read-back verified at `ee367f6eae346d5db784d3d44658e3e96af82435`, still linked to issue #1061. A two-line fixture correction requires the AbortSignal already forwarded by the accepted native prerequisite while preserving strict model equality; production source is unchanged. Exactly those two existing tests pass on Node and Bun in `run-20261014T015649214748Z-04fa534cea9c`, with independent review. Publication `run-20261014T020006885826Z-187ae1c88841` succeeded and exact head/issue readback passed. Earlier unchanged native source gates remain valid. Evidence: `qmd-cancellation-1063-model-options.log` in the existing SDLC-09 report directory. No downstream release or deployment is claimed.
+
+## Checkpoint contribution acceptance — 2026-10-14
+
+All 11 new checkpoint regressions pass on Node and Bun, including changed plan/model/fingerprint/position/count rejection, default cleanup, lazy legacy repair, 4,100 incomplete rows beyond the KNN cap and a real two-connection publication race. Native lint, types, build and canonical package smoke pass; independent source and typed-harness reviews pass. Accepted existing store/SDK/read/metadata phases are reused. Remaining metadata cases, vector-layout migration and partition repack pass; real concurrency, helper and HTTP/daemon acceptance passes in `run-20261014T021954903207Z-c6614ad25881` (Node2 concurrency,46 helpers,22 HTTP/daemon; Bun11 HTTP with established16 skips). Disposable IPv4-only loopback and adequate bounded process limits are verifier conditions, not production changes.
+
+One pre-existing 20,001-document metadata fixture exceeds a 1.5 GiB worker on both the feature (`run-20261014T021018111357Z-54b8628ff99d`) and unchanged prerequisite (`run-20261014T021438070658Z-354f1f62e9fb`), each with cgroup OOM evidence. It is not a new checkpoint regression or a green full-suite claim. Earlier failed worker/budget attempts are retained in evidence rather than counted as passes. Exact logs: `qmd-checkpoint-1064-{race-node-final,bun,harness-lint,remaining-node,functional-final,concurrency-http,vector-baseline}.log` under the existing SDLC-09 report directory. Source commit `ca92b902...` and managed publication `run-20261014T022411833295Z-ebcc4010c4d8` are verified, and typed GitHub readback confirms PR #1065 exact head and issue. Nine retained groups now have five complete active pairs and four structural blockers; no downstream release, production change or fork retirement is claimed.
