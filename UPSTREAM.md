@@ -221,7 +221,9 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       ],
       "checked_on": "2026-10-14",
       "issue": "https://github.com/tobi/qmd/issues/1070",
-      "pr": null
+      "pr": "https://github.com/tobi/qmd/pull/1071",
+      "pr_state": "open",
+      "pr_head_sha": "2b72a730c8d53849533332ff0a7d469c5820096e"
     },
     {
       "id": "QM-P08",
@@ -399,6 +401,16 @@ Fourteen strict regressions pass on Node and Bun, including six invalid mappings
 
 Current register: nine retained groups, seven complete active pairs, two structurally nonconformant groups (scheduler and unapproved distribution). No downstream source adoption, own release, deployment or patch retirement is claimed.
 
-### Serialized maintenance contribution in execution — 2026-10-14
+## Verified serialized maintenance contribution — 2026-10-14
 
-Issue [#1070](https://github.com/tobi/qmd/issues/1070) requests opt-in in-process serialized maintenance and bounded embedding sweeps, distinct from CLI watch PR #646. Existing closed MCP tool/daemon proposals do not establish rejection of this scope. Candidate `repos/worktrees/sdlc09-qmd-maintenance-1070` starts from verified checkpoint PR #1065 at `ca92b902b750a89604750fa749fd8df238782526`. Its initial lifecycle regression is pending native acceptance; no production implementation, commit or PR is claimed. QM-P06 remains nonconformant until the complete retained scope has a verified linked contribution. No new service or persistent queue is introduced.
+QM-P06 now has issue [#1070](https://github.com/tobi/qmd/issues/1070) and draft [PR #1071](https://github.com/tobi/qmd/pull/1071), verified open at exact head `2b72a730c8d53849533332ff0a7d469c5820096e` in existing genuine fork X1pheR/qmd, base main, with configured Closes #1070. Typed issue readback confirms exactly that closing PR. Candidate `repos/worktrees/sdlc09-qmd-maintenance-1070` starts from checkpoint `ca92b902b750a89604750fa749fd8df238782526`; the PR explicitly discloses cancellation/checkpoint #1063/#1065 prerequisites. The new commit changes eight files, while the PR's fourteen-file diff also contains those prerequisite changes. CLI watch #646 remains a distinct scope.
+
+The native public SDK exports one host-owned synchronous maintenance claim with bounded completed receipts, cooperative actual-completion drain, host admission/terminal/sanitization hooks and partial committed results. The optional embedding adapter defaults off and starts only explicitly; it uses that same claim, refreshed collection policy/debt/query admission, fair first-collection rotation, bounded resumable non-force native embedding and one shared monotonic deadline. The SDK forwards the existing native maxDurationMs option. No store, CLI or MCP scheduler is activated automatically; no new service, durable queue, filesystem authority or deployment is added.
+
+Native vertical RED/GREEN covers admission reentrancy, clock/sanitizer/notification failures, shared claim/retention, dynamic sweep admission, deadline/shutdown actual drain, progress retention, budget validation, timer setup/cleanup and stop-during-host-callback races. Final 67 cases pass on both Node and Bun with types/lint in `run-20261014T073217657442Z-54db89fab7e2`; exact owned workers are removed in `run-20261014T073241387819Z-018a6c7a467d`. Six affected fake-LLM duration/batch/cancellation cases pass on both runtimes in `run-20261014T070453883487Z-fb3cb3caa3e2`. The overbroad model-backed SDK attempt OOMed loading an unrelated model; full model-suite acceptance is not claimed.
+
+Public-export RED `run-20261014T072950411438Z-c4cf099995af` fails the missing SDK entry; GREEN `run-20261014T073009771594Z-4021a6af8a77` passes both runtimes, types/lint/build. Final existing package gate plus real npm-tarball consumers pass on Node and Bun in `run-20261014T073502732315Z-891d8a26118b`, OOMKilled=false/ExitCode=0, including native grammar/CLI/wrapper checks and compiled JS/type export presence. All evidence remains in `qmd-maintenance-1070-*.log` under the existing SDLC09 reports directory.
+
+Independent final review passes after two bounded separate fixing cycles; it verifies exact source hashes, all public exports/docs, no remaining concrete logic/security findings and no credentials/private identifiers. Maintenance source SHA256 `42002513af9c13e1db1e84be7dcafa27e3ea44c602b9a0e90577de020dd32673`; scheduler SHA256 `c07cacb2ee0a62b39ada6b62ba8bfa69335535d6b0a4a5a0993c2464c17aadd4`. Managed normalization `run-20261014T073537327248Z-cbc257beb1bc`, verified commit `run-20261014T073554684387Z-4564e9dd95ce` and exact managed publication `run-20261014T073629742821Z-176fdf50f520` pass. Typed fork branch/PR/issue API readbacks verify the exact commit/link. Upstream checks at publication show Socket Project Report success and Pull Request Alerts in progress, with no ordinary commit statuses; overall CI success is not claimed.
+
+Current register: nine retained groups, eight complete active issue/PR pairs and one structural blocker, unapproved distribution QM-P08. No downstream source adoption, own release, deployment or patch retirement is claimed.
