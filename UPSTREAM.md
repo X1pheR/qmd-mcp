@@ -219,8 +219,8 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "84f7c0c",
         "12e93c5"
       ],
-      "checked_on": "2026-10-10",
-      "issue": null,
+      "checked_on": "2026-10-14",
+      "issue": "https://github.com/tobi/qmd/issues/1070",
       "pr": null
     },
     {
@@ -398,3 +398,7 @@ QM-P04 now has issue #1068 and draft PR #1069 at exact head 8c0d4de14e4e1cc166bc
 Fourteen strict regressions pass on Node and Bun, including six invalid mappings, collection updates, sibling-prefix containment, two-server isolation, option mutation and default absence. Types/lint pass in run-20261014T034207978747Z-ad7f4339b7f5. Build and installed Node/Bun CLI/wrapper/grammar package smoke pass in run-20261014T040002153858Z-6c75cc382e45, OOMKilled=false. Production/docs/full fixture and incremental boundary reviews pass. Source SHA256 ca9fdfb067646b0e320e37546a9b8ad413cd8985a082f501080e6889c4c4c7c8; fixture cd92fb048e51665a716120822801db125b6f074be93f71aae70893148ad45722. Managed normalization035218-6494 and public source scrub035220-6d443 pass; verified commit040048-316c and managed publication040105-c8c613 succeed at the exact head. Existing accepted default compatibility and policy tests are reused. Logs qmd-source-handoff-1068-*.log remain in the existing report directory.
 
 Current register: nine retained groups, seven complete active pairs, two structurally nonconformant groups (scheduler and unapproved distribution). No downstream source adoption, own release, deployment or patch retirement is claimed.
+
+### Serialized maintenance contribution in execution — 2026-10-14
+
+Issue [#1070](https://github.com/tobi/qmd/issues/1070) requests opt-in in-process serialized maintenance and bounded embedding sweeps, distinct from CLI watch PR #646. Existing closed MCP tool/daemon proposals do not establish rejection of this scope. Candidate `repos/worktrees/sdlc09-qmd-maintenance-1070` starts from verified checkpoint PR #1065 at `ca92b902b750a89604750fa749fd8df238782526`. Its initial lifecycle regression is pending native acceptance; no production implementation, commit or PR is claimed. QM-P06 remains nonconformant until the complete retained scope has a verified linked contribution. No new service or persistent queue is introduced.
