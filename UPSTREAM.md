@@ -46,3 +46,149 @@ A passing dependency-resolution step alone is not sufficient for a QMD upgrade.
 ## Upstreaming
 
 Generic fixes that belong in QMD itself should be proposed upstream when practical. QMD MCP should retain only behavior that is intentionally part of this product boundary or compatibility patches needed until an accepted upstream release contains the fix.
+
+## Machine-readable maintained patch register
+
+This register describes the current downstream source locked to @tobilu/qmd 2.5.3, not an unaccepted 2.8.3 source upgrade. The mapped local commits are in current main; official upstream issue/PR states were checked on 2026-11-11. The separate product-owned verification and exact official artifact adoption gates still apply.
+
+<!-- SDLC-UPSTREAM-REGISTER:1 -->
+```json
+{
+  "schema_version": 1,
+  "upstream": "tobi/qmd",
+  "baseline": "v2.5.3 (locked @tobilu/qmd package)",
+  "patches": [
+    {
+      "id": "QM-P02",
+      "kind": "upstream",
+      "scope": "Routine query without reranking, bounded query_reranked and unified query tool surface",
+      "local_commits": [
+        "45efce0",
+        "0e9f4d7"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/1066",
+      "pr": "https://github.com/tobi/qmd/pull/1067",
+      "pr_state": "draft",
+      "pr_head_sha": "f803ecbcad72115dd5ef390137438dc2d514fb96"
+    },
+    {
+      "id": "QM-P03",
+      "kind": "upstream",
+      "scope": "Explicit user-approval requirement for resource exposure",
+      "local_commits": [
+        "ad5a596"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/959",
+      "pr": "https://github.com/tobi/qmd/pull/1055",
+      "pr_state": "draft"
+    },
+    {
+      "id": "QM-P04",
+      "kind": "upstream",
+      "scope": "Configured source-relative-path handoff metadata with canonical stored spelling and root containment; obsolete reverse-lookup cache removed",
+      "local_commits": [
+        "45efce0",
+        "5770753"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/1068",
+      "pr": "https://github.com/tobi/qmd/pull/1069",
+      "pr_state": "draft",
+      "pr_head_sha": "8c0d4de14e4e1cc166bcdd25205fb0f5b720d552"
+    },
+    {
+      "id": "QM-P05",
+      "kind": "upstream",
+      "scope": "Retained incomplete-vector checkpoint/resume behavior, requiring partition-aware upstream completeness and migration compatibility",
+      "local_commits": [
+        "e44b2f4",
+        "d31e67e",
+        "d5272ef"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/1064",
+      "pr": "https://github.com/tobi/qmd/pull/1065",
+      "pr_state": "draft",
+      "pr_head_sha": "ca92b902b750a89604750fa749fd8df238782526"
+    },
+    {
+      "id": "QM-P06",
+      "kind": "upstream",
+      "scope": "Serialized optional maintenance and embedding scheduler with bounded recovery",
+      "local_commits": [
+        "b979fe7",
+        "84f7c0c",
+        "12e93c5"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/1070",
+      "pr": "https://github.com/tobi/qmd/pull/1071",
+      "pr_state": "draft",
+      "pr_head_sha": "2b72a730c8d53849533332ff0a7d469c5820096e"
+    },
+    {
+      "id": "QM-P08",
+      "kind": "distribution",
+      "scope": "Temporary ARM64-compatible QMD MCP image version and source packaging/publication of tracked unreleased upstream fixes",
+      "local_commits": [
+        "23f6d84",
+        "b81ed59"
+      ],
+      "checked_on": "2026-11-11",
+      "temporary": true,
+      "depends_on": [
+        "QM-P02",
+        "QM-P03",
+        "QM-P04",
+        "QM-P05",
+        "QM-P06",
+        "QM-P09",
+        "QM-P10",
+        "QM-P12"
+      ],
+      "exit_when": "All linked upstream patches are present in an immutable suitable official artifact; verified native Node/Bun and MCP behavior plus image, consumer and rollback parity allow retiring the own image/tag/build workflow."
+    },
+    {
+      "id": "QM-P09",
+      "kind": "upstream",
+      "scope": "Export upstream createMcpServer factory for integrated MCP wrapper extensions",
+      "local_commits": [
+        "45efce0"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/1056",
+      "pr": "https://github.com/tobi/qmd/pull/1057",
+      "pr_state": "draft"
+    },
+    {
+      "id": "QM-P10",
+      "kind": "upstream",
+      "scope": "HTTP /health includes document and pending-embedding status counters",
+      "local_commits": [
+        "45efce0"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/1058",
+      "pr": "https://github.com/tobi/qmd/pull/1059",
+      "pr_state": "draft"
+    },
+    {
+      "id": "QM-P12",
+      "kind": "upstream",
+      "scope": "SDK AbortSignal forwarding, caller-local native evaluation admission, cooperative batch cancellation and listener cleanup",
+      "local_commits": [
+        "e44b2f4",
+        "d31e67e",
+        "d5272ef"
+      ],
+      "checked_on": "2026-11-11",
+      "issue": "https://github.com/tobi/qmd/issues/1061",
+      "pr": "https://github.com/tobi/qmd/pull/1063",
+      "pr_state": "draft",
+      "pr_head_sha": "ee367f6eae346d5db784d3d44658e3e96af82435"
+    }
+  ]
+}
+```
