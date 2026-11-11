@@ -163,10 +163,10 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "45efce0",
         "0e9f4d7"
       ],
-      "checked_on": "2026-10-14",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/1066",
       "pr": "https://github.com/tobi/qmd/pull/1067",
-      "pr_state": "open",
+      "pr_state": "draft",
       "pr_head_sha": "f803ecbcad72115dd5ef390137438dc2d514fb96"
     },
     {
@@ -176,7 +176,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "local_commits": [
         "ad5a596"
       ],
-      "checked_on": "2026-10-13",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/959",
       "pr": "https://github.com/tobi/qmd/pull/1055",
       "pr_state": "draft"
@@ -189,10 +189,10 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "45efce0",
         "5770753"
       ],
-      "checked_on": "2026-10-14",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/1068",
       "pr": "https://github.com/tobi/qmd/pull/1069",
-      "pr_state": "open",
+      "pr_state": "draft",
       "pr_head_sha": "8c0d4de14e4e1cc166bcdd25205fb0f5b720d552"
     },
     {
@@ -204,10 +204,10 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "d31e67e",
         "d5272ef"
       ],
-      "checked_on": "2026-10-14",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/1064",
       "pr": "https://github.com/tobi/qmd/pull/1065",
-      "pr_state": "open",
+      "pr_state": "draft",
       "pr_head_sha": "ca92b902b750a89604750fa749fd8df238782526"
     },
     {
@@ -219,23 +219,33 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "84f7c0c",
         "12e93c5"
       ],
-      "checked_on": "2026-10-14",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/1070",
       "pr": "https://github.com/tobi/qmd/pull/1071",
-      "pr_state": "open",
+      "pr_state": "draft",
       "pr_head_sha": "2b72a730c8d53849533332ff0a7d469c5820096e"
     },
     {
       "id": "QM-P08",
-      "kind": "upstream",
-      "scope": "Native ARM64 and source maintenance distribution packaging",
+      "kind": "distribution",
+      "scope": "Temporary ARM64-compatible QMD MCP image version and source packaging/publication of tracked unreleased upstream fixes",
       "local_commits": [
         "23f6d84",
         "b81ed59"
       ],
-      "checked_on": "2026-10-10",
-      "issue": null,
-      "pr": null
+      "checked_on": "2026-11-11",
+      "temporary": true,
+      "depends_on": [
+        "QM-P02",
+        "QM-P03",
+        "QM-P04",
+        "QM-P05",
+        "QM-P06",
+        "QM-P09",
+        "QM-P10",
+        "QM-P12"
+      ],
+      "exit_when": "All linked upstream patches are present in an immutable suitable official artifact; verified native Node/Bun and MCP behavior plus image, consumer and rollback parity allow retiring the own image/tag/build workflow."
     },
     {
       "id": "QM-P09",
@@ -244,7 +254,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "local_commits": [
         "45efce0"
       ],
-      "checked_on": "2026-10-13",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/1056",
       "pr": "https://github.com/tobi/qmd/pull/1057",
       "pr_state": "draft"
@@ -256,7 +266,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
       "local_commits": [
         "45efce0"
       ],
-      "checked_on": "2026-10-13",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/1058",
       "pr": "https://github.com/tobi/qmd/pull/1059",
       "pr_state": "draft"
@@ -270,7 +280,7 @@ This inline register is the product-owned logical-patch projection used by SDLC-
         "d31e67e",
         "d5272ef"
       ],
-      "checked_on": "2026-10-14",
+      "checked_on": "2026-11-11",
       "issue": "https://github.com/tobi/qmd/issues/1061",
       "pr": "https://github.com/tobi/qmd/pull/1063",
       "pr_state": "draft",
@@ -331,17 +341,9 @@ PR1063 now includes native admission completion at exact head `3cd88481c00d84f1b
 QM-P05 now has upstream issue #1064 and draft PR #1065 at exact head `ca92b902b750a89604750fa749fd8df238782526`, with an explicit Closes link and true-fork/base readback. The feature is stacked on native-admission PR #1063, prerequisite `ee367f6eae346d5db784d3d44658e3e96af82435`; its own feature commit is separate. Opt-in `resume: true` retains and reuses completed chunks only for an unchanged formatted chunk plan, positions, model and fingerprint. Incomplete checkpoints are excluded before KNN selection across real partitions and metadata scopes. A synchronous read transaction prevents a concurrent first checkpoint from entering the legacy fast path. Default cleanup and complete legacy embeddings retain their behavior. This is an upstream contribution, not a released or deployed adoption.
 
 
-## Unapproved distribution disposition proposal — QM-P08
+## Temporary distribution exit — QM-P08
 
-This is a proposal for an operator decision, not an approved ADR or a conformance exception. The register row remains unlinked and nonconformant. Exact source candidate: `f747bb8ea70cf468588335a80fb75dd5ee42df20`; mapped historical commits: `23f6d84`, `b81ed59`. Initial/import commits can contain baseline and unrelated application files; approval must not cover the entire mapped commit merely because it appears in this row.
-
-Proposed narrow scope: Only the standalone package identity, native-architecture container/build requirements and product verification/publication wrappers. Query semantics, source handoff, scheduler, embedding and patched upstream source remain excluded.
-
-Requested decision: retain this precisely bounded product-owned distribution adapter, or move/remove it through the existing source/release/deployment owners when the upstream artifact supplies an equivalent accepted distribution. Our package names, registry targets and operator release controls do not constitute a useful upstream feature request; do not manufacture an issue/PR asking upstream to adopt downstream ownership. Any reusable application or verification improvement discovered in this history still needs its own tested upstream-compatible contribution.
-
-Before an approved disposition can clear a gate, the operator-owned product ADR must identify the exact retained scope, rationale, owner, acceptance evidence and review/exit trigger. Proposed review trigger: the next suitable official upstream release or2026-11-14, whichever comes first. Exit requires equivalent released functionality and distribution, accepted source/runtime/consumer parity, rollback readiness and the existing explicit production/retirement acceptance. This proposal authorizes none of those transitions and approves no missing contribution.
-
-The existing shared repository/release lifecycle invokes the single canonical SDLC checker before managed tag/publication/recovery transitions. Direct public workflow integration remains incomplete: the checker source is private and repository-scoped public GitHub tokens cannot read it. No production credentials, privileged public runner, second checker or extra service was introduced.
+The own ARM64 image/version and publication workflow distribute the existing upstream-bound patches while they remain unreleased; product-owned regression and source verification are not independently exempt source patches. Official artifact inclusion, native/MCP acceptance, consumer parity and rollback remain prerequisites for retiring this distribution. No release or deployment is authorized.
 
 ## Cancellation fixture follow-up — 2026-10-14
 
@@ -413,4 +415,4 @@ Public-export RED `run-20261014T072950411438Z-c4cf099995af` fails the missing SD
 
 Independent final review passes after two bounded separate fixing cycles; it verifies exact source hashes, all public exports/docs, no remaining concrete logic/security findings and no credentials/private identifiers. Maintenance source SHA256 `42002513af9c13e1db1e84be7dcafa27e3ea44c602b9a0e90577de020dd32673`; scheduler SHA256 `c07cacb2ee0a62b39ada6b62ba8bfa69335535d6b0a4a5a0993c2464c17aadd4`. Managed normalization `run-20261014T073537327248Z-cbc257beb1bc`, verified commit `run-20261014T073554684387Z-4564e9dd95ce` and exact managed publication `run-20261014T073629742821Z-176fdf50f520` pass. Typed fork branch/PR/issue API readbacks verify the exact commit/link. Upstream checks at publication show Socket Project Report success and Pull Request Alerts in progress, with no ordinary commit statuses; overall CI success is not claimed.
 
-Current register: nine retained groups, eight complete active issue/PR pairs and one structural blocker, unapproved distribution QM-P08. No downstream source adoption, own release, deployment or patch retirement is claimed.
+Current register (2026-11-11): nine retained groups, eight official upstream issue/PR pairs and one temporary distribution dependent on those patches. The machine-readable register passes only structural conformance; no downstream release, deployment or patch retirement is claimed.
